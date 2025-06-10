@@ -183,6 +183,12 @@ protected:
             volScalarField separationFactor_;
             volSymmTensorField bijDelta_;
             volSymmTensorField Rij_;
+
+            volScalarField I1_;
+            volScalarField I2_;
+            
+            volSymmTensorField Tij2_;
+                
         // Decay control
 
             //- Flag to include the decay control
@@ -193,6 +199,9 @@ protected:
 
     // Protected Member Functions
 
+        // Calculate and store the invariants and tensors
+        void calculateInvariantsAndTensors();
+        
         void setDecayControl(const dictionary& dict);
 
         virtual tmp<volScalarField> F1(const volScalarField& CDkOmega) const;
