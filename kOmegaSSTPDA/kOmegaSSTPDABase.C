@@ -101,6 +101,46 @@ namespace Foam
 // * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * * //
 
 template<class BasicEddyViscosityModel>
+void kOmegaSSTPDABase<BasicEddyViscosityModel>::calculateInvariantsAndTensors()
+{
+    // Get velocity gradient (has dimensions [1/s])
+    volTensorField gradU(fvc::grad(this->U_));
+    
+    // Calculate strain rate and rotation tensors (both have dimensions [1/s])
+    Sij_ = symm(gradU);
+    Omegaij_ = -0.5*(gradU - gradU.T());
+    
+    // Calculate magnitude of strain rate (has dimensions [1/s])
+    volScalarField S(sqrt(2*magSqr(Sij_)));
+    
+    // Calculate time scale (has dimensions [s])
+    volScalarField tScale(1.0/max(S/a1_ + this->omegaMin_, omega_ + this->omegaMin_));
+    
+    // Initialize fields with correct dimensions
+    forAll(Sij_, cellI)
+    {
+        scalar tScale_i = tScale[cellI];
+        scalar tScale2_i = tScale_i * tScale_i;
+        scalar tScale3_i = tScale2_i * tScale_i;
+        scalar tScale4_i = tScale3_i * tScale_i;
+        
+        // Calculate S² and Ω²
+        symmTensor S2 = symm(Sij_[cellI] & Sij_[cellI]);
+        tensor O2 = Omegaij_[cellI] & Omegaij_[cellI];
+        
+        // Calculate invariants (all dimensionless)
+        I1_[cellI] = tScale2_i * tr(Sij_[cellI] & Sij_[cellI]);
+        I2_[cellI] = tScale2_i * tr(Omegaij_[cellI] & Omegaij_[cellI]);
+        
+        // Calculate tensor bases (all dimensionless)
+
+        // T₂ = S·Ω - Ω·S
+        Tij2_[cellI] = tScale2_i * symm((Sij_[cellI] & Omegaij_[cellI]) - (Omegaij_[cellI] & Sij_[cellI]));
+        
+    }
+}
+
+template<class BasicEddyViscosityModel>
 tmp<volScalarField> kOmegaSSTPDABase<BasicEddyViscosityModel>::F1
 (
     const volScalarField& CDkOmega
@@ -320,6 +360,166 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
         phi,
         transport,
         propertiesName
+    ),
+
+
+    // Added by Mario
+
+    I1_
+    (
+        IOobject
+        (
+            IOobject::groupName("I1", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,                     // Use 'this->mesh_' to initialize the field
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    I2_
+    (
+        IOobject
+        (
+            IOobject::groupName("I2", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    I3_
+    (
+        IOobject
+        (
+            IOobject::groupName("I3", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    I4_
+    (
+        IOobject
+        (
+            IOobject::groupName("I4", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    I5_
+    (
+        IOobject
+        (
+            IOobject::groupName("I5", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    Sij_
+    (
+        IOobject
+        (
+            IOobject::groupName("Sij", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless/dimTime, symmTensor::zero)
+    ),
+    Omegaij_
+    (
+        IOobject
+        (
+            IOobject::groupName("Omegaij", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedTensor("zero", dimless/dimTime, tensor::zero)
+    ),
+    Tij1_
+    (
+        IOobject
+        (
+            IOobject::groupName("Tij1", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    ),
+    Tij2_
+    (
+        IOobject
+        (
+            IOobject::groupName("Tij2", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    ),
+    Tij3_
+    (
+        IOobject
+        (
+            IOobject::groupName("Tij3", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    ),
+    Tij4_
+    (
+        IOobject
+        (
+            IOobject::groupName("Tij4", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    ),
+    Tij5_
+    (
+        IOobject
+        (
+            IOobject::groupName("Tij5", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
     ),
 
     // Model coefficients
