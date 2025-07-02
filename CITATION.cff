@@ -25,7 +25,7 @@ references:
         given-names: "Xiang I.A."
       - family-names: Abkar
         given-names: Mahdi
-    title: "A generalisable data-augmented turbulence model with progressive and interpretable corrections"
+    title: "A generalisable data-augmented turbulence model with progressive and interpretable corrections for incompressible wall-bounded flows"
     journal: "arXiv preprint"
     volume: "arXiv:2503.18568"
     year: 2025
