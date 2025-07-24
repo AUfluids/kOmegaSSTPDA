@@ -26,8 +26,8 @@ references:
       - family-names: Abkar
         given-names: Mahdi
     title: "A generalisable data-augmented turbulence model with progressive and interpretable corrections for incompressible wall-bounded flows"
-    journal: "arXiv preprint"
-    volume: "arXiv:2503.18568"
+    journal: "International Journal of Heat and Fluid Flow"
+    volume: 116
     year: 2025
   - type: article
     authors:
