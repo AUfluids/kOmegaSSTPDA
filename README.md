@@ -153,7 +153,7 @@ Ali Amarloo <amarloo@mpe.au.dk>
 
 ## References
 For more details about the model development and validation, refer to:
-- [A generalisable data-augmented turbulence model with progressive and interpretable corrections for incompressible wall-bounded flows](https://doi.org/10.1016/j.ijheatfluidflow.2025.109970)
+- [A generalisable data-augmented turbulence model with progressive and interpretable corrections](https://arxiv.org/abs/2503.18568)
 - [Progressive augmentation of turbulence models for flow separation by multi-case computational fluid dynamics driven surrogate optimization](https://doi.org/10.1063/5.0174470)
 - [Progressive augmentation of Reynolds stress tensor models for secondary flow prediction by computational fluid dynamics driven surrogate optimisation](https://doi.org/10.1016/j.ijheatfluidflow.2023.109242)
 
@@ -163,13 +163,10 @@ Please cite this library using the following publications:
 Rincón et al. (2025)
 ```
 @article{rincon2025generalisable,
-  title={A generalisable data-augmented turbulence model with progressive and interpretable corrections for incompressible wall-bounded flows},
-  author = {Rinc{\'o}n Mario Javier, and Reclari, Martino and Yang, Xiang I.A. and Abkar, Mahdi},
-  journal = {International Journal of Heat and Fluid Flow},
-  volume = {116},
-  pages = {109970},
-  year = {2025},
-  issn = {0142-727X},
+  title={A generalisable data-augmented turbulence model with progressive and interpretable corrections},
+  author={Rinc{\'o}n, Mario J and Reclari, Martino and Yang, Xiang IA and Abkar, Mahdi},
+  journal={arXiv preprint arXiv:2503.18568},
+  year={2025}
 }
 ```
 

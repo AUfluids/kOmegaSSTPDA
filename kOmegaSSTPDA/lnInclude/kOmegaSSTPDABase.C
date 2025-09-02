@@ -322,6 +322,75 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
         propertiesName
     ),
 
+
+    // Added by Mario
+
+    I1_
+    (
+        IOobject
+        (
+            IOobject::groupName("I1", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    I2_
+    (
+        IOobject
+        (
+            IOobject::groupName("I2", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    Sij_
+    (
+        IOobject
+        (
+            IOobject::groupName("Sij", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), symmTensor::zero)
+    ),
+    Omegaij_
+    (
+        IOobject
+        (
+            IOobject::groupName("Omegaij", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedTensor("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), tensor::zero)
+    ),
+    Tij2_
+    (
+        IOobject
+        (
+            IOobject::groupName("Tij2", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    ),
+
     // Model coefficients
     alphaK1_
     (
@@ -487,6 +556,19 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             -0.215
         )
     ),
+    alpha_S_
+    (
+        IOobject
+        (
+            IOobject::groupName("alpha_S", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
 
     // Secondary flow coefficients
     anisotropyCorrection_
@@ -534,6 +616,19 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             -0.178
         )
     ),
+    alpha_A_
+    (
+        IOobject
+        (
+            IOobject::groupName("alpha_A", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
 
     // Fields
     bijDelta_
@@ -546,7 +641,9 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
         ),
-        0*dev(symm(fvc::grad(U)))/(omega_ + this->omegaMin_)
+        this->mesh_,
+
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
     ),
     Rij_
     (
@@ -558,7 +655,8 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
         ),
-        0.0*(((2.0/3.0)*I)*k_ - this->nut_*twoSymm(fvc::grad(this->U_)))
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimensionSet(0, 2, -2, 0, 0, 0, 0), symmTensor::zero)
     ),
     F3_
     (
@@ -604,7 +702,8 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
         ),
-        0*k_/k_
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
     ),
 
     // Decay control
@@ -741,8 +840,8 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
 
     // Calculate strain and rotation tensors
     volTensorField gradU(fvc::grad(U));
-    volSymmTensorField Sij(symm(gradU));
-    volTensorField Oij(-0.5*(gradU - gradU.T()));
+    Sij_ = (symm(gradU));
+    Omegaij_ = -0.5*(gradU - gradU.T());
     volScalarField S(sqrt(2*magSqr(symm(fvc::grad(U)))));
 
     // Calculate time scales
@@ -750,25 +849,25 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     volScalarField tScale2(tScale*tScale);
 
     // Calculate invariants
-    volScalarField I1_(tScale2 * tr(Sij & Sij));
-    volScalarField I2_(tScale2 * tr(Oij & Oij));
-    volSymmTensorField Tij2_(tScale2 * symm((Sij & Oij) - (Oij & Sij)));
+    I1_ = (tScale2 * tr(Sij_ & Sij_));
+    I2_ = (tScale2 * tr(Omegaij_ & Omegaij_));
+    Tij2_ = (tScale2 * symm((Sij_ & Omegaij_) - (Omegaij_ & Sij_)));
 
     // Calculate invariants cell by cell
-    forAll(Sij, CellI)
+    forAll(Sij_, CellI)
     {
-        I1_[CellI] = tScale2[CellI] * tr(Sij[CellI] & Sij[CellI]);
-        I2_[CellI] = tScale2[CellI] * tr(Oij[CellI] & Oij[CellI]);
-        Tij2_[CellI] = tScale2[CellI] * symm((Sij[CellI] & Oij[CellI]) - (Oij[CellI] & Sij[CellI]));
+        I1_[CellI] = tScale2[CellI] * tr(Sij_[CellI] & Sij_[CellI]);
+        I2_[CellI] = tScale2[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI]);
+        Tij2_[CellI] = tScale2[CellI] * symm((Sij_[CellI] & Omegaij_[CellI]) - (Omegaij_[CellI] & Sij_[CellI]));
     }
 
     dimensionedScalar nutMin("nutMin", dimensionSet(0, 2, -1, 0, 0, 0, 0), 1e-9);
 
     // Calculate separation factor
-    volScalarField alpha_S(I1_ * 0.0);
+    // volScalarField alpha_S(I1_ * 0.0);
     if (separationCorrection_)
     {
-        alpha_S = C0_
+        alpha_S_ = C0_
                  + C1_*(I1_ - 2.86797085e-02) / 1.96630250e-02
                  + C2_*(I2_ - -1.21140076e-02) / 1.83587958e-02;  // z-score standardisation
     }
@@ -782,20 +881,20 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
                 scalar(1)
             ),
             scalar(0)
-        ), lambda2_.value())*(alpha_S);
+        ), lambda2_.value())*(alpha_S_);
 
     // Calculate secondary flow factor
-    volScalarField alpha_A(I1_ * 0.0);
+    // volScalarField alpha_A(I1_ * 0.0);
     if (anisotropyCorrection_)
     {
-        alpha_A = A0_
+        alpha_A_ = A0_
                  + A1_*(I1_ - 4.13641572e-02) / 9.70441569e-03
                  + A2_*(I2_ - -4.13023579e-02) / 9.75952414e-03;  // z-score standardisation
     }
 
     // Update Reynolds stress tensor
-    bijDelta_ = bijDelta_ + ((nut*omega_/(k_ + this->kMin_))*(alpha_A*Tij2_) - bijDelta_)*anisotropyRelaxation_;
-    Rij_ = ((2.0/3.0)*I)*k_ - 2.0*nut*Sij + 2*k_*bijDelta_;
+    bijDelta_ = bijDelta_ + ((nut*omega_/(k_ + this->kMin_))*(alpha_A_*Tij2_) - bijDelta_)*anisotropyRelaxation_;
+    Rij_ = ((2.0/3.0)*I)*k_ - 2.0*nut*Sij_ + 2*k_*bijDelta_;
 
     // Calculate production terms
     volSymmTensorField dAij(2*k_*bijDelta_);
