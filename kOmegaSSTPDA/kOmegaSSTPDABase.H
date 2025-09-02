@@ -184,9 +184,14 @@ protected:
             volSymmTensorField bijDelta_;
             volSymmTensorField Rij_;
 
+            volScalarField alpha_A_;
+            volScalarField alpha_S_;
+
             volScalarField I1_;
             volScalarField I2_;
             
+            volSymmTensorField Sij_;
+            volTensorField Omegaij_;
             volSymmTensorField Tij2_;
                 
         // Decay control
