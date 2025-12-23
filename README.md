@@ -43,12 +43,12 @@ The k-omega-SST-PDA model is a progressive data-augmented turbulence model that 
 ## Installation
 1. Clone the repository:
      ```
-     git clone https://github.com/AUfluids/KOSSTPDA.git
+     git clone https://github.com/AUfluids/kOmegaSSTPDA.git
      ```
 
 2. Make the installation script executable:
      ```
-     cd KOSSTPDA
+     cd kOmegaSSTPDA
      chmod a+x Allwmake
      ```
 
