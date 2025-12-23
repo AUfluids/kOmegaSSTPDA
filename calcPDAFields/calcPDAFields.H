@@ -87,6 +87,10 @@ protected:
         bool normalise_;
         word normalisationFieldName_;
         
+        //- Field names for velocity and pressure (velocity used for gradients)
+        word UName_;
+        word pName_;
+        
         //- Optional: use k and epsilon if available
         word kName_;
         word epsilonName_;

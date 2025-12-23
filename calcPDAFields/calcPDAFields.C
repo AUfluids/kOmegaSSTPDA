@@ -5,7 +5,7 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    Copyright (C) 2025 M. J. Rincón
+    Copyright (C) 2026 M. J. Rincón
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -62,6 +62,8 @@ calcPDAFields::calcPDAFields
     epsilon_(1e-10),
     normalise_(true),
     normalisationFieldName_("omega"),
+    UName_("U"),
+    pName_("p"),
     kName_("k"),
     epsilonName_("epsilon"),
     useKEpsilon_(false)
@@ -77,6 +79,8 @@ bool calcPDAFields::read(const dictionary& dict)
     dict.readIfPresent("epsilon", epsilon_);
     dict.readIfPresent("normalise", normalise_);
     dict.readIfPresent("normalisationField", normalisationFieldName_);
+    dict.readIfPresent("U", UName_);
+    dict.readIfPresent("p", pName_);
     dict.readIfPresent("k", kName_);
     dict.readIfPresent("epsilon", epsilonName_);
     dict.readIfPresent("useKEpsilon", useKEpsilon_);
@@ -93,7 +97,7 @@ bool calcPDAFields::execute()
 
 bool calcPDAFields::write()
 {
-    const volVectorField& U = mesh_.lookupObject<volVectorField>("U");
+    const volVectorField& U = mesh_.lookupObject<volVectorField>(UName_);
 
     // Calculate strain and rotation tensors
     volTensorField gradU(fvc::grad(U));
