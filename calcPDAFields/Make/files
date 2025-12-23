@@ -1,0 +1,4 @@
+calcPDAFields.C
+
+LIB = $(FOAM_USER_LIBBIN)/libcalcPDAFields
+

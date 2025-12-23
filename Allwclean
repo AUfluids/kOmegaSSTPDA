@@ -2,8 +2,9 @@
 cd "${0%/*}" || exit
 #------------------------------------------------------------------------------
 
-wclean kOmegaSSTPDA
+wclean kOmegaSSTPDA_incompressible
 wclean kOmegaSSTPDA_compressible
+wclean calcPDAFields
 
 rm -f foamVersionThisIsCompiledFor
 

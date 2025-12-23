@@ -1,0 +1,130 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1912                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   0.001;// all distances in mm
+
+h  		500;
+L  		50;
+
+negh 	#calc "-$h";
+
+r		.12;
+rinv 	#calc "1/$r";
+
+nx		1;
+nyz		48;
+nyzp	48;
+
+vertices
+(
+	// h = 50 mm (2h=100mm)
+	// L = 600 mm = 12 h
+	
+    // front-plane: z = +25mm
+    // inlet region
+    (   0  0  	$negh)           // 0
+    (   0  0   	0)           // 1
+    (   0  $h  	0)           // 2
+    (   0  $h 	$negh)           // 3
+    (   0  0   	$h)           // 4
+    (   0  $h   $h)           // 5
+    (   0  $negh $negh)           // 6
+    (   0  $negh 0)           // 7
+    (   0  $negh $h)           // 8
+
+    (   $L  0  	$negh)           // 9
+    (   $L  0   	0)           // 10
+    (   $L  $h  	0)           // 11
+    (   $L  $h 	$negh)           // 12
+    (   $L  0   	$h)           // 13
+    (   $L  $h   $h)           // 14
+    (   $L  $negh $negh)           // 15
+    (   $L  $negh 0)           // 16
+    (   $L  $negh $h)           // 17
+
+);
+
+blocks
+(
+    hex (0 3 2 1  9 12 11 10) ( $nyz $nyzp $nx)  simpleGrading ($r $rinv 1)
+    //hex (1 2 5 4  10 11 14 13) ($nyz $nyzp $nx)  simpleGrading ($r $r 1)
+    //hex (6 0 1 7  15 9 10 16) ($nyz $nyzp $nx)  simpleGrading ($rinv $rinv 1)
+	//hex (7 1 4 8  16 10 13 17) ($nyz $nyzp $nx)  simpleGrading ($rinv $r 1)
+
+);
+
+edges
+(
+
+);
+
+boundary
+(
+    inlet
+    {
+        type cyclic;
+        neighbourPatch	outlet;
+        faces
+        (
+            (0 3 2 1)
+            //(1 2 5 4)
+            //(6 0 1 7)
+            //(7 1 4 8)
+        );
+    }
+
+    outlet
+    {
+        type cyclic;
+        neighbourPatch	inlet;
+        faces
+        (
+            (9 12 11 10)
+            //(10 11 14 13)
+            //(15 9 10 16)
+            //(16 10 13 17)
+        );
+    }
+
+    walls
+    {
+        type wall;
+        faces
+        (
+            (2 3 12 11)
+            (0 3 12 09)
+
+        );
+    }
+
+
+    symPlanes
+    {
+        type symmetry;
+        faces
+        (
+            (1 2 11 10)
+            (0 1 10 9)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+
+// ************************************************************************* //
