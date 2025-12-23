@@ -22,8 +22,7 @@ calcPDAFields
 {
     type            calcPDAFields;
     libs            (calcPDAFields);
-    U               UMean;  // Name of the velocity field to use to calculate gradients
-    p               pMean;  // Name of the pressure field to use to calculate gradients
+    U               UMean;  // Velocity field used for grad(U), Sij, Omegaij, invariants/Tij
     region          region0;
     enabled         true;
     log             true;

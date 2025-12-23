@@ -63,7 +63,6 @@ calcPDAFields::calcPDAFields
     normalise_(true),
     normalisationFieldName_("omega"),
     UName_("U"),
-    pName_("p"),
     kName_("k"),
     epsilonName_("epsilon"),
     useKEpsilon_(false)
@@ -80,7 +79,6 @@ bool calcPDAFields::read(const dictionary& dict)
     dict.readIfPresent("normalise", normalise_);
     dict.readIfPresent("normalisationField", normalisationFieldName_);
     dict.readIfPresent("U", UName_);
-    dict.readIfPresent("p", pName_);
     dict.readIfPresent("k", kName_);
     dict.readIfPresent("epsilon", epsilonName_);
     dict.readIfPresent("useKEpsilon", useKEpsilon_);

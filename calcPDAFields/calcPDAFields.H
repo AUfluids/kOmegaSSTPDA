@@ -89,7 +89,6 @@ protected:
         
         //- Field names for velocity and pressure (velocity used for gradients)
         word UName_;
-        word pName_;
         
         //- Optional: use k and epsilon if available
         word kName_;
