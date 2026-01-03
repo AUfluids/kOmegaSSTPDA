@@ -1,0 +1,10 @@
+{
+    "j1": 0.6029531270396671,
+    "j2": 0.5681085746745566,
+    "J": 0.5855308508571118,
+    "description": {
+        "j1": "Normalised velocity error metric",
+        "j2": "Normalised vorticity error metric",
+        "J": "Combined error metric (average of j1 and j2)"
+    }
+}

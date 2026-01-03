@@ -84,7 +84,12 @@ License
         }
     \endverbatim
 
-
+Note for Developers
+    The lnInclude directory is automatically created by wmake when building
+    the library. It should contain only header files (.H), not implementation
+    files (.C). The lnInclude directory allows other libraries (e.g., the
+    compressible version) to include these headers. To regenerate lnInclude
+    automatically, simply run: wmake libso
 
 \*---------------------------------------------------------------------------*/
 
@@ -382,6 +387,19 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
         IOobject
         (
             IOobject::groupName("I5", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    I1_I2_
+    (
+        IOobject
+        (
+            IOobject::groupName("I1_I2", alphaRhoPhi.group()),
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
@@ -876,6 +894,48 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             omega_.dimensions(),
             0
         )
+    ),
+    // Z-score standardisation constants for separation correction
+    I1_mean_separation
+    (
+        dimensionedScalar("I1_mean_separation", dimless, 2.86797085e-02)
+    ),
+    I1_std_separation
+    (
+        dimensionedScalar("I1_std_separation", dimless, 1.96630250e-02)
+    ),
+    I2_mean_separation
+    (
+        dimensionedScalar("I2_mean_separation", dimless, -1.21140076e-02)
+    ),
+    I2_std_separation
+    (
+        dimensionedScalar("I2_std_separation", dimless, 1.83587958e-02)
+    ),
+    I1_I2_mean_separation
+    (
+        dimensionedScalar("I1_I2_mean_separation", dimless, 0.0)  // TODO: Set to the mean of I1*I2 from training data
+    ),
+    I1_I2_std_separation
+    (
+        dimensionedScalar("I1_I2_std_separation", dimless, 1.0)  // TODO: Set to the standard deviation of I1*I2 from training data
+    ),
+    // Z-score standardisation constants for anisotropy correction
+    I1_mean_anisotropy
+    (
+        dimensionedScalar("I1_mean_anisotropy", dimless, 4.13641572e-02)
+    ),
+    I1_std_anisotropy
+    (
+        dimensionedScalar("I1_std_anisotropy", dimless, 9.70441569e-03)
+    ),
+    I2_mean_anisotropy
+    (
+        dimensionedScalar("I2_mean_anisotropy", dimless, -4.13023579e-02)
+    ),
+    I2_std_anisotropy
+    (
+        dimensionedScalar("I2_std_anisotropy", dimless, 9.75952414e-03)
     )
 {
     bound(k_, this->kMin_);
@@ -1001,6 +1061,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Calculate invariants (normalised by omega via tauScale powers)
     I1_ = (tauScale2 * tr(Sij_ & Sij_));
     I2_ = (tauScale2 * tr(Omegaij_ & Omegaij_));
+    I1_I2_ = I1_ * I2_;  // Product of I1 and I2 for custom field
     I3_ = (tauScale3 * tr(Sij_ & Sij_ & Sij_));
     I4_ = (tauScale3 * tr(Omegaij_ & Omegaij_ & Sij_));
     I5_ = (tauScale4 * tr(Omegaij_ & Omegaij_ & Sij_ & Sij_));
@@ -1021,6 +1082,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     {
         I1_[CellI] = tauScale2[CellI] * tr(Sij_[CellI] & Sij_[CellI]);
         I2_[CellI] = tauScale2[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI]);
+        I1_I2_[CellI] = I1_[CellI] * I2_[CellI];  // Product of I1 and I2
         I3_[CellI] = tauScale3[CellI] * tr(Sij_[CellI] & Sij_[CellI] & Sij_[CellI]);
         I4_[CellI] = tauScale3[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI]);
         I5_[CellI] = tauScale4[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI] & Sij_[CellI]);
@@ -1044,8 +1106,8 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     if (separationCorrection_)
     {
         alpha_S_ = C0_
-                 + C1_*(I1_ - 2.86797085e-02) / 1.96630250e-02
-                 + C2_*(I2_ - -1.21140076e-02) / 1.83587958e-02;  // z-score standardisation
+                 + C1_*(I1_I2_ - I1_I2_mean_separation) / I1_I2_std_separation
+                 + C2_*(I2_ - I2_mean_separation) / I2_std_separation;  // z-score standardisation
     }
 
     separationFactor_ = pow(
@@ -1064,8 +1126,8 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     if (anisotropyCorrection_)
     {
         alpha_A_ = A0_
-                 + A1_*(I1_ - 4.13641572e-02) / 9.70441569e-03
-                 + A2_*(I2_ - -4.13023579e-02) / 9.75952414e-03;  // z-score standardisation
+                 + A1_*(I1_ - I1_mean_anisotropy) / I1_std_anisotropy
+                 + A2_*(I2_ - I2_mean_anisotropy) / I2_std_anisotropy;  // z-score standardisation
     }
 
     // Update Reynolds stress tensor
