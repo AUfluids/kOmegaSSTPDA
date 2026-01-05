@@ -23,7 +23,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
-from scipy.interpolate import griddata, LinearNDInterpolator
+from scipy.interpolate import griddata, LinearNDInterpolator, interp1d
 from scipy.spatial.distance import cdist
 from scipy.stats import beta
 from matplotlib.lines import Line2D
@@ -431,6 +431,89 @@ def compute_error_metrics(
     return vol_avg_diff / baseline_error if baseline_error > 0 else 1000.0
 
 
+def compute_rmse(
+    current_field: np.ndarray,
+    reference_field: np.ndarray,
+    volume: np.ndarray,
+) -> float:
+    """
+    Compute Root Mean Square Error (RMSE) with volumetric weighting.
+
+    Args:
+        current_field: Current simulation field
+        reference_field: Reference (HF) field
+        volume: Cell volumes for volumetric averaging
+
+    Returns:
+        Volumetrically-weighted RMSE
+    """
+    diff_squared = (current_field - reference_field) ** 2
+    vol_avg_diff_squared = volumetric_average(diff_squared, volume)
+    return np.sqrt(vol_avg_diff_squared)
+
+
+def compute_mae(
+    current_field: np.ndarray,
+    reference_field: np.ndarray,
+    volume: np.ndarray,
+) -> float:
+    """
+    Compute Mean Absolute Error (MAE) with volumetric weighting.
+
+    Args:
+        current_field: Current simulation field
+        reference_field: Reference (HF) field
+        volume: Cell volumes for volumetric averaging
+
+    Returns:
+        Volumetrically-weighted MAE
+    """
+    diff = np.abs(current_field - reference_field)
+    return volumetric_average(diff, volume)
+
+
+def compute_relative_rmse(
+    current_field: np.ndarray,
+    reference_field: np.ndarray,
+    volume: np.ndarray,
+) -> float:
+    """
+    Compute relative RMSE (normalised by reference field magnitude).
+
+    Args:
+        current_field: Current simulation field
+        reference_field: Reference (HF) field
+        volume: Cell volumes for volumetric averaging
+
+    Returns:
+        Relative RMSE (as percentage)
+    """
+    rmse = compute_rmse(current_field, reference_field, volume)
+    ref_rms = np.sqrt(volumetric_average(reference_field ** 2, volume))
+    return (rmse / ref_rms * 100.0) if ref_rms > 0 else 1000.0
+
+
+def compute_relative_mae(
+    current_field: np.ndarray,
+    reference_field: np.ndarray,
+    volume: np.ndarray,
+) -> float:
+    """
+    Compute relative MAE (normalised by reference field magnitude).
+
+    Args:
+        current_field: Current simulation field
+        reference_field: Reference (HF) field
+        volume: Cell volumes for volumetric averaging
+
+    Returns:
+        Relative MAE (as percentage)
+    """
+    mae = compute_mae(current_field, reference_field, volume)
+    ref_mean_abs = volumetric_average(np.abs(reference_field), volume)
+    return (mae / ref_mean_abs * 100.0) if ref_mean_abs > 0 else 1000.0
+
+
 def volumetric_average(
     field: np.ndarray, volume: np.ndarray
 ) -> float:
@@ -452,26 +535,107 @@ def save_objective_function_results(
     error_velocity: float,
     error_vorticity: float,
     error_combined: float,
+    rmse_velocity: Optional[float] = None,
+    rmse_vorticity: Optional[float] = None,
+    mae_velocity: Optional[float] = None,
+    mae_vorticity: Optional[float] = None,
+    relative_rmse_velocity: Optional[float] = None,
+    relative_rmse_vorticity: Optional[float] = None,
+    relative_mae_velocity: Optional[float] = None,
+    relative_mae_vorticity: Optional[float] = None,
+    rmse_velocity_kosst: Optional[float] = None,
+    rmse_vorticity_kosst: Optional[float] = None,
+    mae_velocity_kosst: Optional[float] = None,
+    mae_vorticity_kosst: Optional[float] = None,
 ) -> None:
     """
     Save objective function results to JSON file in human-readable format.
 
     Args:
         output_path: Path to output JSON file
-        error_velocity: Velocity error metric (j1)
-        error_vorticity: Vorticity error metric (j2)
+        error_velocity: Velocity error metric (j1) - normalised vs kOmegaSST baseline
+        error_vorticity: Vorticity error metric (j2) - normalised vs kOmegaSST baseline
         error_combined: Combined error metric (J)
+        rmse_velocity: Root Mean Square Error for velocity vs HF
+        rmse_vorticity: Root Mean Square Error for vorticity vs HF
+        mae_velocity: Mean Absolute Error for velocity vs HF
+        mae_vorticity: Mean Absolute Error for vorticity vs HF
+        relative_rmse_velocity: Relative RMSE for velocity vs HF (%)
+        relative_rmse_vorticity: Relative RMSE for vorticity vs HF (%)
+        relative_mae_velocity: Relative MAE for velocity vs HF (%)
+        relative_mae_vorticity: Relative MAE for vorticity vs HF (%)
+        rmse_velocity_kosst: RMSE for kOmegaSST velocity vs HF (for comparison)
+        rmse_vorticity_kosst: RMSE for kOmegaSST vorticity vs HF (for comparison)
+        mae_velocity_kosst: MAE for kOmegaSST velocity vs HF (for comparison)
+        mae_vorticity_kosst: MAE for kOmegaSST vorticity vs HF (for comparison)
     """
-    results = {
-        "j1": error_velocity,
-        "j2": error_vorticity,
-        "J": error_combined,
-        "description": {
-            "j1": "Normalised velocity error metric",
-            "j2": "Normalised vorticity error metric",
-            "J": "Combined error metric (average of j1 and j2)",
-        },
-    }
+    # Build results dictionary with values first, then descriptions
+    results = {}
+    descriptions = {}
+    
+    # Add all numeric values first
+    results["j1"] = error_velocity
+    results["j2"] = error_vorticity
+    results["J"] = error_combined
+    descriptions["j1"] = "Normalised velocity error metric (vs kOmegaSST baseline)"
+    descriptions["j2"] = "Normalised vorticity error metric (vs kOmegaSST baseline)"
+    descriptions["J"] = "Combined error metric (average of j1 and j2)"
+    
+    # Add RMSE metrics if provided
+    if rmse_velocity is not None:
+        results["rmse_velocity"] = rmse_velocity
+        descriptions["rmse_velocity"] = "Root Mean Square Error for velocity vs HF (m/s)"
+    
+    if rmse_vorticity is not None:
+        results["rmse_vorticity"] = rmse_vorticity
+        descriptions["rmse_vorticity"] = "Root Mean Square Error for vorticity vs HF (1/s)"
+    
+    # Add MAE metrics if provided
+    if mae_velocity is not None:
+        results["mae_velocity"] = mae_velocity
+        descriptions["mae_velocity"] = "Mean Absolute Error for velocity vs HF (m/s)"
+    
+    if mae_vorticity is not None:
+        results["mae_vorticity"] = mae_vorticity
+        descriptions["mae_vorticity"] = "Mean Absolute Error for vorticity vs HF (1/s)"
+    
+    # Add relative RMSE metrics if provided
+    if relative_rmse_velocity is not None:
+        results["relative_rmse_velocity"] = relative_rmse_velocity
+        descriptions["relative_rmse_velocity"] = "Relative RMSE for velocity vs HF (absolute percentage, 0-100 scale)"
+    
+    if relative_rmse_vorticity is not None:
+        results["relative_rmse_vorticity"] = relative_rmse_vorticity
+        descriptions["relative_rmse_vorticity"] = "Relative RMSE for vorticity vs HF (absolute percentage, 0-100 scale)"
+    
+    # Add relative MAE metrics if provided
+    if relative_mae_velocity is not None:
+        results["relative_mae_velocity"] = relative_mae_velocity
+        descriptions["relative_mae_velocity"] = "Relative MAE for velocity vs HF (absolute percentage, 0-100 scale)"
+    
+    if relative_mae_vorticity is not None:
+        results["relative_mae_vorticity"] = relative_mae_vorticity
+        descriptions["relative_mae_vorticity"] = "Relative MAE for vorticity vs HF (absolute percentage, 0-100 scale)"
+    
+    # Add kOmegaSST baseline metrics for comparison if provided
+    if rmse_velocity_kosst is not None:
+        results["rmse_velocity_kosst"] = rmse_velocity_kosst
+        descriptions["rmse_velocity_kosst"] = "RMSE for kOmegaSST velocity vs HF (m/s) - baseline"
+    
+    if rmse_vorticity_kosst is not None:
+        results["rmse_vorticity_kosst"] = rmse_vorticity_kosst
+        descriptions["rmse_vorticity_kosst"] = "RMSE for kOmegaSST vorticity vs HF (1/s) - baseline"
+    
+    if mae_velocity_kosst is not None:
+        results["mae_velocity_kosst"] = mae_velocity_kosst
+        descriptions["mae_velocity_kosst"] = "MAE for kOmegaSST velocity vs HF (m/s) - baseline"
+    
+    if mae_vorticity_kosst is not None:
+        results["mae_vorticity_kosst"] = mae_vorticity_kosst
+        descriptions["mae_vorticity_kosst"] = "MAE for kOmegaSST vorticity vs HF (1/s) - baseline"
+    
+    # Add descriptions section at the end
+    results["description"] = descriptions
     
     with open(output_path, "w") as f:
         json.dump(results, f, indent=4)
@@ -1113,28 +1277,21 @@ def create_diagonal_velocity_profile_plot(
             u_tau = 0.05 * Ub  # Approximate relationship
             logger.warning(f"u_tau not found in mesh, using approximate value: {u_tau:.6f} (0.05 * U_b)")
 
-    # Create diagonal profile points (y=z, from corner to corner)
-    # Find the actual range of y and z coordinates in the mesh
-    y_min_ref = C_y_ref.min()
-    y_max_ref = C_y_ref.max()
-    z_min_ref = C_z_ref.min()
-    z_max_ref = C_z_ref.max()
+    # Create diagonal profile points: from p0(1, -1) to p1(0, 0) in (y, z) coordinates
+    # The diagonal follows z = -y
+    p0_y, p0_z = 1.0, -1.0  # Start point
+    p1_y, p1_z = 0.0, 0.0   # End point
     
-    # Diagonal should span the intersection of y and z ranges
-    diagonal_min = max(y_min_ref, z_min_ref)
-    diagonal_max = min(y_max_ref, z_max_ref)
+    # Generate points along the diagonal from p0 to p1
+    diagonal_y = np.linspace(p0_y, p1_y, Ny)
+    diagonal_z = np.linspace(p0_z, p1_z, Ny)  # z = -y
     
-    # Create diagonal points where y = z
-    diagonal_y = np.linspace(diagonal_min, diagonal_max, Ny)
-    diagonal_z = diagonal_y  # y = z along diagonal
-
     # Get u_2 component (y-component, index 1) for each model
     u_2_kosst = u_kosst[:, 1]
     u_2_current = u_current[:, 1]
     u_2_hf = u_hf[:, 1]
-
+    
     # Interpolate u_2 along the diagonal for each model
-    # Use fill_value=np.nan to handle points outside the domain
     interp_kosst = LinearNDInterpolator(
         list(zip(C_y_ref, C_z_ref)), u_2_kosst, fill_value=np.nan
     )
@@ -1144,17 +1301,23 @@ def create_diagonal_velocity_profile_plot(
     interp_hf = LinearNDInterpolator(
         list(zip(C_y_ref, C_z_ref)), u_2_hf, fill_value=np.nan
     )
-
+    
     # Extract profiles along diagonal
     u_2_profile_kosst = interp_kosst(diagonal_y, diagonal_z)
     u_2_profile_current = interp_current(diagonal_y, diagonal_z)
     u_2_profile_hf = interp_hf(diagonal_y, diagonal_z)
+
+    u_2_profile_kosst = -u_2_profile_kosst
+    u_2_profile_current = -u_2_profile_current
+    u_2_profile_hf = -u_2_profile_hf
     
-    # Log some diagnostic information
-    logger.info(f"Diagonal profile range: y/H = [{diagonal_min:.4f}, {diagonal_max:.4f}]")
-    logger.info(f"Valid points - kOmegaSST: {np.sum(~np.isnan(u_2_profile_kosst))}/{Ny}, "
-                f"kOmegaSSTPDA: {np.sum(~np.isnan(u_2_profile_current))}/{Ny}, "
-                f"HF: {np.sum(~np.isnan(u_2_profile_hf))}/{Ny}")
+    # Reverse arrays so y goes from 0 to 1 for plotting (diagonal_y goes from 1 to 0)
+    y_profile_kosst = np.flip(diagonal_y)
+    y_profile_current = np.flip(diagonal_y)
+    y_profile_hf = np.flip(diagonal_y)
+    u_2_profile_kosst = np.flip(u_2_profile_kosst)
+    u_2_profile_current = np.flip(u_2_profile_current)
+    u_2_profile_hf = np.flip(u_2_profile_hf)
 
     # Remove NaN values
     valid_kosst = ~np.isnan(u_2_profile_kosst)
@@ -1166,13 +1329,13 @@ def create_diagonal_velocity_profile_plot(
     u_2_norm_current = u_2_profile_current[valid_current] / u_tau
     u_2_norm_hf = u_2_profile_hf[valid_hf] / u_tau
 
-    y_profile_kosst = diagonal_y[valid_kosst]
-    y_profile_current = diagonal_y[valid_current]
-    y_profile_hf = diagonal_y[valid_hf]
+    y_profile_kosst = y_profile_kosst[valid_kosst]
+    y_profile_current = y_profile_current[valid_current]
+    y_profile_hf = y_profile_hf[valid_hf]
 
     # Create figure (single plot)
     fig, ax = plt.subplots(
-        figsize=get_figure_size(1, 1),
+        figsize=get_figure_size(3, 1),
         ncols=1,
         nrows=1,
         constrained_layout=False,
@@ -2198,7 +2361,7 @@ def main(
         diff_u_kosst_cell = np.abs(u_x_kosst_cell - u_x_les_cell)
         avg_diff_u_kosst = volumetric_average(diff_u_kosst_cell, volume)
 
-        # Compute error metrics
+        # Compute error metrics (normalised vs kOmegaSST baseline)
         norm_error_velocity = compute_error_metrics(
             u_x_full_cell, u_x_les_cell, volume, avg_diff_u_kosst
         )
@@ -2206,6 +2369,23 @@ def main(
         norm_error_vorticity = compute_error_metrics(
             vort_x_full_cell, vort_x_les_cell, volume, avg_diff_vort_kosst
         )
+
+        # Compute additional error metrics vs HF
+        # Current model vs HF
+        rmse_velocity = compute_rmse(u_x_full_cell, u_x_les_cell, volume)
+        rmse_vorticity = compute_rmse(vort_x_full_cell, vort_x_les_cell, volume)
+        mae_velocity = compute_mae(u_x_full_cell, u_x_les_cell, volume)
+        mae_vorticity = compute_mae(vort_x_full_cell, vort_x_les_cell, volume)
+        relative_rmse_velocity = compute_relative_rmse(u_x_full_cell, u_x_les_cell, volume)
+        relative_rmse_vorticity = compute_relative_rmse(vort_x_full_cell, vort_x_les_cell, volume)
+        relative_mae_velocity = compute_relative_mae(u_x_full_cell, u_x_les_cell, volume)
+        relative_mae_vorticity = compute_relative_mae(vort_x_full_cell, vort_x_les_cell, volume)
+
+        # kOmegaSST vs HF (baseline for comparison)
+        rmse_velocity_kosst = compute_rmse(u_x_kosst_cell, u_x_les_cell, volume)
+        rmse_vorticity_kosst = compute_rmse(vort_x_kosst_cell, vort_x_les_cell, volume)
+        mae_velocity_kosst = compute_mae(u_x_kosst_cell, u_x_les_cell, volume)
+        mae_vorticity_kosst = compute_mae(vort_x_kosst_cell, vort_x_les_cell, volume)
 
     except (FileNotFoundError, KeyError, RuntimeError) as e:
         logger.error(f"Error processing simulation data: {e}")
@@ -2217,6 +2397,19 @@ def main(
         u_x_les_slice = None
         vort_x_les_slice = None
         avg_diff_vort_kosst = 1.0
+        # Set additional error metrics to None if computation failed
+        rmse_velocity = None
+        rmse_vorticity = None
+        mae_velocity = None
+        mae_vorticity = None
+        relative_rmse_velocity = None
+        relative_rmse_vorticity = None
+        relative_mae_velocity = None
+        relative_mae_vorticity = None
+        rmse_velocity_kosst = None
+        rmse_vorticity_kosst = None
+        mae_velocity_kosst = None
+        mae_vorticity_kosst = None
 
     # Combined error metric
     norm_error_combined = (norm_error_velocity + norm_error_vorticity) / 2.0
@@ -2233,6 +2426,18 @@ def main(
         norm_error_velocity,
         norm_error_vorticity,
         norm_error_combined,
+        rmse_velocity=rmse_velocity if 'rmse_velocity' in locals() else None,
+        rmse_vorticity=rmse_vorticity if 'rmse_vorticity' in locals() else None,
+        mae_velocity=mae_velocity if 'mae_velocity' in locals() else None,
+        mae_vorticity=mae_vorticity if 'mae_vorticity' in locals() else None,
+        relative_rmse_velocity=relative_rmse_velocity if 'relative_rmse_velocity' in locals() else None,
+        relative_rmse_vorticity=relative_rmse_vorticity if 'relative_rmse_vorticity' in locals() else None,
+        relative_mae_velocity=relative_mae_velocity if 'relative_mae_velocity' in locals() else None,
+        relative_mae_vorticity=relative_mae_vorticity if 'relative_mae_vorticity' in locals() else None,
+        rmse_velocity_kosst=rmse_velocity_kosst if 'rmse_velocity_kosst' in locals() else None,
+        rmse_vorticity_kosst=rmse_vorticity_kosst if 'rmse_vorticity_kosst' in locals() else None,
+        mae_velocity_kosst=mae_velocity_kosst if 'mae_velocity_kosst' in locals() else None,
+        mae_vorticity_kosst=mae_vorticity_kosst if 'mae_vorticity_kosst' in locals() else None,
     )
 
     # Create visualisations if data is available

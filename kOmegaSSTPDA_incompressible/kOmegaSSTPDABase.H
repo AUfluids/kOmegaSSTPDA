@@ -183,14 +183,14 @@ protected:
             const dimensionedScalar I1_std_separation;
             const dimensionedScalar I2_mean_separation;
             const dimensionedScalar I2_std_separation;
-            const dimensionedScalar I1_I2_mean_separation;
-            const dimensionedScalar I1_I2_std_separation;
 
         // Z-score standardisation constants for anisotropy correction
             const dimensionedScalar I1_mean_anisotropy;
             const dimensionedScalar I1_std_anisotropy;
             const dimensionedScalar I2_mean_anisotropy;
             const dimensionedScalar I2_std_anisotropy;
+            const dimensionedScalar I4_3_mean_anisotropy;
+            const dimensionedScalar I4_3_std_anisotropy;
 
         // Fields
 
@@ -210,9 +210,9 @@ protected:
 
             volScalarField I1_;
             volScalarField I2_;
-            volScalarField I1_I2_;  // Product of I1_ and I2_
             volScalarField I3_;
             volScalarField I4_;
+            volScalarField I4_3_;
             volScalarField I5_;
             
             volSymmTensorField Sij_;

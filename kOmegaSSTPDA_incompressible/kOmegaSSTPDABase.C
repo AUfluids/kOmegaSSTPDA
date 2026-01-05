@@ -395,11 +395,11 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
         this->mesh_,
         dimensionedScalar("zero", dimless, 0)
     ),
-    I1_I2_
+    I4_3_
     (
         IOobject
         (
-            IOobject::groupName("I1_I2", alphaRhoPhi.group()),
+            IOobject::groupName("I4_3", alphaRhoPhi.group()),
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
@@ -912,14 +912,6 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
     (
         dimensionedScalar("I2_std_separation", dimless, 1.83587958e-02)
     ),
-    I1_I2_mean_separation
-    (
-        dimensionedScalar("I1_I2_mean_separation", dimless, 0.0)  // TODO: Set to the mean of I1*I2 from training data
-    ),
-    I1_I2_std_separation
-    (
-        dimensionedScalar("I1_I2_std_separation", dimless, 1.0)  // TODO: Set to the standard deviation of I1*I2 from training data
-    ),
     // Z-score standardisation constants for anisotropy correction
     I1_mean_anisotropy
     (
@@ -929,13 +921,13 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
     (
         dimensionedScalar("I1_std_anisotropy", dimless, 9.70441569e-03)
     ),
-    I2_mean_anisotropy
+    I4_3_mean_anisotropy
     (
-        dimensionedScalar("I2_mean_anisotropy", dimless, -4.13023579e-02)
+        dimensionedScalar("I4_3_mean_anisotropy", dimless, 1.1584002310255537e-09)
     ),
-    I2_std_anisotropy
+    I4_3_std_anisotropy
     (
-        dimensionedScalar("I2_std_anisotropy", dimless, 9.75952414e-03)
+        dimensionedScalar("I4_3_std_anisotropy", dimless, 1.2071801143436806e-08)
     )
 {
     bound(k_, this->kMin_);
@@ -1061,9 +1053,10 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Calculate invariants (normalised by omega via tauScale powers)
     I1_ = (tauScale2 * tr(Sij_ & Sij_));
     I2_ = (tauScale2 * tr(Omegaij_ & Omegaij_));
-    I1_I2_ = I1_ * I2_;  // Product of I1 and I2 for custom field
+    // I1_I2_ = I1_ * I2_;  // Product of I1 and I2 for custom field
     I3_ = (tauScale3 * tr(Sij_ & Sij_ & Sij_));
     I4_ = (tauScale3 * tr(Omegaij_ & Omegaij_ & Sij_));
+    I4_3_ = I4_ * I4_ * I4_;  // I4^3
     I5_ = (tauScale4 * tr(Omegaij_ & Omegaij_ & Sij_ & Sij_));
 
     // Calculate base tensors (dimensionless using Sdim/Odim)
@@ -1082,9 +1075,10 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     {
         I1_[CellI] = tauScale2[CellI] * tr(Sij_[CellI] & Sij_[CellI]);
         I2_[CellI] = tauScale2[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI]);
-        I1_I2_[CellI] = I1_[CellI] * I2_[CellI];  // Product of I1 and I2
+        // I1_I2_[CellI] = I1_[CellI] * I2_[CellI];  // Product of I1 and I2
         I3_[CellI] = tauScale3[CellI] * tr(Sij_[CellI] & Sij_[CellI] & Sij_[CellI]);
         I4_[CellI] = tauScale3[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI]);
+        I4_3_[CellI] = I4_[CellI] * I4_[CellI] * I4_[CellI];  // I4^3
         I5_[CellI] = tauScale4[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI] & Sij_[CellI]);
 
         // Base tensors (dimensionless via tauScale powers)
@@ -1106,7 +1100,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     if (separationCorrection_)
     {
         alpha_S_ = C0_
-                 + C1_*(I1_I2_ - I1_I2_mean_separation) / I1_I2_std_separation
+                 + C1_*(I1_ - I1_mean_separation) / I1_std_separation
                  + C2_*(I2_ - I2_mean_separation) / I2_std_separation;  // z-score standardisation
     }
 
@@ -1127,7 +1121,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     {
         alpha_A_ = A0_
                  + A1_*(I1_ - I1_mean_anisotropy) / I1_std_anisotropy
-                 + A2_*(I2_ - I2_mean_anisotropy) / I2_std_anisotropy;  // z-score standardisation
+                 + A2_*(I4_3_ - I4_3_mean_anisotropy) / I4_3_std_anisotropy;  // z-score standardisation
     }
 
     // Update Reynolds stress tensor
