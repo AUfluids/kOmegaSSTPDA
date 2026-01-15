@@ -338,7 +338,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedScalar("zero", dimless, 0)
@@ -351,63 +351,102 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedScalar("zero", dimless, 0)
     ),
-    I3_
-    (
-        IOobject
-        (
-            IOobject::groupName("I3", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedScalar("zero", dimless, 0)
-    ),
-    I4_
-    (
-        IOobject
-        (
-            IOobject::groupName("I4", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedScalar("zero", dimless, 0)
-    ),
-    I5_
-    (
-        IOobject
-        (
-            IOobject::groupName("I5", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedScalar("zero", dimless, 0)
-    ),
-    I4_3_
-    (
-        IOobject
-        (
-            IOobject::groupName("I4_3", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedScalar("zero", dimless, 0)
-    ),
+    // I3_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I3", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    // I4_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I4", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    // I5_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I5", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    // I4_3_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I4_3", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    // I1_2_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I1_2", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    // I1_2_I5_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I1_2_I5", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    // I1_I4_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("I1_I4", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
     Sij_
     (
         IOobject
@@ -416,7 +455,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedSymmTensor("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), symmTensor::zero)
@@ -429,7 +468,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedTensor("zero", dimensionSet(0, 0, -1, 0, 0, 0, 0), tensor::zero)
@@ -442,7 +481,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedSymmTensor("zero", dimless, symmTensor::zero)
@@ -455,102 +494,102 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedSymmTensor("zero", dimless, symmTensor::zero)
     ),
-    Tij4_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij4", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
-    Tij5_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij5", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
-    Tij6_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij6", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
-    Tij7_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij7", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
-    Tij8_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij8", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
-    Tij9_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij9", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
-    Tij10_
-    (
-        IOobject
-        (
-            IOobject::groupName("Tij10", alphaRhoPhi.group()),
-            this->runTime_.timeName(),
-            this->mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        this->mesh_,
-        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
-    ),
+    // Tij4_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij4", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
+    // Tij5_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij5", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
+    // Tij6_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij6", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
+    // Tij7_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij7", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
+    // Tij8_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij8", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
+    // Tij9_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij9", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
+    // Tij10_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("Tij10", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    // ),
     // Model coefficients
     alphaK1_
     (
@@ -720,7 +759,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
     (
         IOobject
         (
-            IOobject::groupName("alpha_S", alphaRhoPhi.group()),
+            IOobject::groupName("alpha_S_", alphaRhoPhi.group()),
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
@@ -729,6 +768,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
         this->mesh_,
         dimensionedScalar("zero", dimless, 0)
     ),
+
 
     // Secondary flow coefficients
     anisotropyCorrection_
@@ -749,45 +789,147 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             0.5
         )
     ),
-    A0_
+    A0_2_
     (
         dimensioned<scalar>::getOrAddToDict
         (
-            "A0",
+            "A0_2",
             this->coeffDict_,
             -1.584
         )
     ),
-    A1_
+    A1_2_
     (
         dimensioned<scalar>::getOrAddToDict
         (
-            "A1",
+            "A1_2",
             this->coeffDict_,
             -0.685
         )
     ),
-    A2_
+    A2_2_
     (
         dimensioned<scalar>::getOrAddToDict
         (
-            "A2",
+            "A2_2",
             this->coeffDict_,
             -0.178
         )
     ),
-    alpha_A_
+    A0_3_
+    (
+        dimensioned<scalar>::getOrAddToDict
+        (
+            "A0_3",
+            this->coeffDict_,
+            -1.584
+        )
+    ),
+    A1_3_
+    (
+        dimensioned<scalar>::getOrAddToDict
+        (
+            "A1_3",
+            this->coeffDict_,
+            -0.685
+        )
+    ),
+    A2_3_
+    (
+        dimensioned<scalar>::getOrAddToDict
+        (
+            "A2_3",
+            this->coeffDict_,
+            -0.178
+        )
+    ),
+    // A3_3_
+    // (
+    //     dimensioned<scalar>::getOrAddToDict
+    //     (
+    //         "A3_3",
+    //         this->coeffDict_,
+    //         -0.178
+    //     )
+    // ),
+    // A0_8_
+    // (
+    //     dimensioned<scalar>::getOrAddToDict
+    //     (
+    //         "A0_8",
+    //         this->coeffDict_,
+    //         -1.584
+    //     )
+    // ),
+    // A1_8_
+    // (
+    //     dimensioned<scalar>::getOrAddToDict
+    //     (
+    //         "A1_8",
+    //         this->coeffDict_,
+    //         -0.685
+    //     )
+    // ),
+    // A2_8_
+    // (
+    //     dimensioned<scalar>::getOrAddToDict
+    //     (
+    //         "A2_8",
+    //         this->coeffDict_,
+    //         -0.178
+    //     )
+    // ),
+    alpha_A_2_
     (
         IOobject
         (
-            IOobject::groupName("alpha_A", alphaRhoPhi.group()),
+            IOobject::groupName("alpha_A_2", alphaRhoPhi.group()),
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedScalar("zero", dimless, 0)
+    ),
+    alpha_A_3_
+    (
+        IOobject
+        (
+            IOobject::groupName("alpha_A_3", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        this->mesh_,
+        dimensionedScalar("zero", dimless, 0)
+    ),
+    // alpha_A_8_
+    // (
+    //     IOobject
+    //     (
+    //         IOobject::groupName("alpha_A_8", alphaRhoPhi.group()),
+    //         this->runTime_.timeName(),
+    //         this->mesh_,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     this->mesh_,
+    //     dimensionedScalar("zero", dimless, 0)
+    // ),
+    anisotropyFactor_
+    (
+        IOobject
+        (
+            IOobject::groupName("anisotropyFactor", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
     ),
 
     // Fields
@@ -799,7 +941,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedSymmTensor("zero", dimless, symmTensor::zero)
@@ -812,7 +954,7 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             this->runTime_.timeName(),
             this->mesh_,
             IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
         ),
         this->mesh_,
         dimensionedSymmTensor("zero", dimensionSet(0, 2, -2, 0, 0, 0, 0), symmTensor::zero)
@@ -824,6 +966,15 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             "F3",
             this->coeffDict_,
             false
+        )
+    ),
+    writePDAFields_
+    (
+        Switch::getOrAddToDict
+        (
+            "writeInvariantsAndTensors",
+            this->coeffDict_,
+            true
         )
     ),
     y_(wallDist::New(this->mesh_).y()),
@@ -898,37 +1049,69 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
     // Z-score standardisation constants for separation correction
     I1_mean_separation
     (
-        dimensionedScalar("I1_mean_separation", dimless, 2.86797085e-02)
+        dimensionedScalar("I1_mean_separation", dimless, 0.025144547382690945)
     ),
     I1_std_separation
     (
-        dimensionedScalar("I1_std_separation", dimless, 1.96630250e-02)
+        dimensionedScalar("I1_std_separation", dimless, 0.0178882315584484)
     ),
     I2_mean_separation
     (
-        dimensionedScalar("I2_mean_separation", dimless, -1.21140076e-02)
+        dimensionedScalar("I2_mean_separation", dimless, -0.022306454116086387)
     ),
     I2_std_separation
     (
-        dimensionedScalar("I2_std_separation", dimless, 1.83587958e-02)
+        dimensionedScalar("I2_std_separation", dimless, 0.01772715518852668)
     ),
     // Z-score standardisation constants for anisotropy correction
     I1_mean_anisotropy
     (
-        dimensionedScalar("I1_mean_anisotropy", dimless, 4.13641572e-02)
+        dimensionedScalar("I1_mean_anisotropy", dimless, 0.03291779702986457)
     ),
     I1_std_anisotropy
     (
-        dimensionedScalar("I1_std_anisotropy", dimless, 9.70441569e-03)
+        dimensionedScalar("I1_std_anisotropy", dimless, 0.016231338018596563)
     ),
-    I4_3_mean_anisotropy
+    I2_mean_anisotropy
     (
-        dimensionedScalar("I4_3_mean_anisotropy", dimless, 1.1584002310255537e-09)
+        dimensionedScalar("I2_mean_anisotropy", dimless, -0.0329222314095828)
     ),
-    I4_3_std_anisotropy
+    I2_std_anisotropy
     (
-        dimensionedScalar("I4_3_std_anisotropy", dimless, 1.2071801143436806e-08)
+        dimensionedScalar("I2_std_anisotropy", dimless, 0.016223782041211103)
     )
+    // I4_3_mean_anisotropy
+    // (
+    //     dimensionedScalar("I4_3_mean_anisotropy", dimless, 2.3753791644645546e-12)
+    // ),
+    // I4_3_std_anisotropy
+    // (
+    //     dimensionedScalar("I4_3_std_anisotropy", dimless, 6.006037576775805e-12)
+    // ),
+    // I1_2_mean_anisotropy
+    // (
+    //     dimensionedScalar("I1_2_mean_anisotropy", dimless, 0.001323985730446603)
+    // ),
+    // I1_2_std_anisotropy
+    // (
+    //     dimensionedScalar("I1_2_std_anisotropy", dimless, 0.0008914476662123046)
+    // ),
+    // I1_2_I5_mean_anisotropy
+    // (
+    //     dimensionedScalar("I1_2_I5_mean_anisotropy", dimless, -0.0006634981042164691)
+    // ),
+    // I1_2_I5_std_anisotropy
+    // (
+    //     dimensionedScalar("I1_2_I5_std_anisotropy", dimless, 0.00044326089632174074)
+    // ),
+    // I1_I4_mean_anisotropy
+    // (
+    //     dimensionedScalar("I1_I4_mean_anisotropy", dimless, 5.3728113630872294e-05)
+    // ),
+    // I1_I4_std_anisotropy
+    // (
+    //     dimensionedScalar("I1_I4_std_anisotropy", dimless, 0.00010853912761169709)
+    // )
 {
     bound(k_, this->kMin_);
     bound(omega_, this->omegaMin_);
@@ -964,6 +1147,42 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::setDecayControl
 
 
 template<class BasicEddyViscosityModel>
+void kOmegaSSTPDABase<BasicEddyViscosityModel>::limitBijDelta()
+{
+    // Limit bijDelta to ensure physically valid Reynolds stress tensor
+    // The constraint is that Rij diagonal components must be non-negative:
+    // Rij = (2/3)*k*I - 2*nut*Sij + 2*k*bijDelta
+    // For diagonal components: Rxx, Ryy, Rzz >= 0
+    
+    // Conservative bounds for bijDelta diagonal components
+    // These ensure Rij diagonal stays positive even in extreme cases
+    const dimensionedScalar bijMin("bijMin", dimless, -1.0/3.0);  // Tight lower bound of -1/3
+    const dimensionedScalar bijMax("bijMax", dimless, 2.0/3.0);   // Tight upper bound of 2/3
+    
+    // Limit diagonal components (xx, yy, zz) of bijDelta
+    forAll(bijDelta_, celli)
+    {
+        symmTensor& bij = bijDelta_[celli];
+        
+        // Limit diagonal components
+        bij.xx() = max(min(bij.xx(), bijMax.value()), bijMin.value());
+        bij.yy() = max(min(bij.yy(), bijMax.value()), bijMin.value());
+        bij.zz() = max(min(bij.zz(), bijMax.value()), bijMin.value());
+        
+        // Optionally limit off-diagonal components to prevent extreme values
+        // This helps maintain numerical stability
+        const scalar offDiagMax = 0.3;
+        bij.xy() = max(min(bij.xy(), offDiagMax), -offDiagMax);
+        bij.xz() = max(min(bij.xz(), offDiagMax), -offDiagMax);
+        bij.yz() = max(min(bij.yz(), offDiagMax), -offDiagMax);
+    }
+    
+    // Correct boundary conditions
+    bijDelta_.correctBoundaryConditions();
+}
+
+
+template<class BasicEddyViscosityModel>
 bool kOmegaSSTPDABase<BasicEddyViscosityModel>::read()
 {
     if (BasicEddyViscosityModel::read())
@@ -982,6 +1201,7 @@ bool kOmegaSSTPDABase<BasicEddyViscosityModel>::read()
         b1_.readIfPresent(this->coeffDict());
         c1_.readIfPresent(this->coeffDict());
         F3_.readIfPresent("F3", this->coeffDict());
+        writePDAFields_.readIfPresent("writeInvariantsAndTensors", this->coeffDict());
 
         // Separation correction coefficients
         separationCorrection_.readIfPresent("separationCorrection", this->coeffDict());
@@ -994,9 +1214,16 @@ bool kOmegaSSTPDABase<BasicEddyViscosityModel>::read()
         // Secondary flow coefficients
         anisotropyCorrection_.readIfPresent("anisotropyCorrection", this->coeffDict());
         anisotropyRelaxation_.readIfPresent(this->coeffDict());
-        A0_.readIfPresent(this->coeffDict());
-        A1_.readIfPresent(this->coeffDict());
-        A2_.readIfPresent(this->coeffDict());
+        A0_2_.readIfPresent(this->coeffDict());
+        A1_2_.readIfPresent(this->coeffDict());
+        A2_2_.readIfPresent(this->coeffDict());
+        A0_3_.readIfPresent(this->coeffDict());
+        A1_3_.readIfPresent(this->coeffDict());
+        A2_3_.readIfPresent(this->coeffDict());
+        // A3_3_.readIfPresent(this->coeffDict());
+        // A0_8_.readIfPresent(this->coeffDict());
+        // A1_8_.readIfPresent(this->coeffDict());
+        // A2_8_.readIfPresent(this->coeffDict());
 
         // Decay control
         setDecayControl(this->coeffDict());
@@ -1053,44 +1280,50 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Calculate invariants (normalised by omega via tauScale powers)
     I1_ = (tauScale2 * tr(Sij_ & Sij_));
     I2_ = (tauScale2 * tr(Omegaij_ & Omegaij_));
-    // I1_I2_ = I1_ * I2_;  // Product of I1 and I2 for custom field
-    I3_ = (tauScale3 * tr(Sij_ & Sij_ & Sij_));
-    I4_ = (tauScale3 * tr(Omegaij_ & Omegaij_ & Sij_));
-    I4_3_ = I4_ * I4_ * I4_;  // I4^3
-    I5_ = (tauScale4 * tr(Omegaij_ & Omegaij_ & Sij_ & Sij_));
+    // I3_ = (tauScale3 * tr(Sij_ & Sij_ & Sij_));
+    // I4_ = (tauScale3 * tr(Omegaij_ & Omegaij_ & Sij_));
+    // I5_ = (tauScale4 * tr(Omegaij_ & Omegaij_ & Sij_ & Sij_));
+
+    // I4_3_ = I4_ * I4_ * I4_;  // I4^3
+    // I1_2_ = I1_ * I1_;  // I1^2
+    // I1_2_I5_ = I1_2_ * I5_;  // I1^2 * I5
+    // I1_I4_ = I1_ * I4_;  // I1 * I4
 
     // Calculate base tensors (dimensionless using Sdim/Odim)
     Tij2_ = symm((Sdim & Odim) - (Odim & Sdim));
     Tij3_ = symm(Sdim & Sdim - (scalar(1.0)/3.0)*tr(Sdim & Sdim)*tensor::I);
-    Tij4_ = symm(Odim & Odim - (scalar(1.0)/3.0)*tr(Odim & Odim)*tensor::I);
-    Tij5_ = symm((Odim & Sdim & Sdim) - (Sdim & Sdim & Odim));
-    Tij6_ = symm((Odim & Odim & Sdim) + (Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Odim & Odim)*tensor::I);
-    Tij7_ = symm((Odim & Sdim & Odim & Odim) - (Odim & Odim & Sdim & Odim));
-    Tij8_ = symm((Odim & Sdim & Sdim & Sdim) - (Sdim & Sdim & Odim & Sdim));
-    Tij9_ = symm((Odim & Odim & Sdim & Sdim) + (Sdim & Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Sdim & Odim & Odim)*tensor::I);
-    Tij10_ = symm((Odim & Sdim & Sdim & Sdim & Odim) - (Odim & Odim & Sdim & Sdim & Odim));
+    // Tij4_ = symm(Odim & Odim - (scalar(1.0)/3.0)*tr(Odim & Odim)*tensor::I);
+    // Tij5_ = symm((Odim & Sdim & Sdim) - (Sdim & Sdim & Odim));
+    // Tij6_ = symm((Odim & Odim & Sdim) + (Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Odim & Odim)*tensor::I);
+    // Tij7_ = symm((Odim & Sdim & Odim & Odim) - (Odim & Odim & Sdim & Odim));
+    // Tij8_ = symm((Odim & Sdim & Sdim & Sdim) - (Sdim & Sdim & Odim & Sdim));
+    // Tij9_ = symm((Odim & Odim & Sdim & Sdim) + (Sdim & Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Sdim & Odim & Odim)*tensor::I);
+    // Tij10_ = symm((Odim & Sdim & Sdim & Sdim & Odim) - (Odim & Odim & Sdim & Sdim & Odim));
 
     // Calculate invariants and base tensors cell by cell
     forAll(Sij_, CellI)
     {
         I1_[CellI] = tauScale2[CellI] * tr(Sij_[CellI] & Sij_[CellI]);
         I2_[CellI] = tauScale2[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI]);
-        // I1_I2_[CellI] = I1_[CellI] * I2_[CellI];  // Product of I1 and I2
-        I3_[CellI] = tauScale3[CellI] * tr(Sij_[CellI] & Sij_[CellI] & Sij_[CellI]);
-        I4_[CellI] = tauScale3[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI]);
-        I4_3_[CellI] = I4_[CellI] * I4_[CellI] * I4_[CellI];  // I4^3
-        I5_[CellI] = tauScale4[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI] & Sij_[CellI]);
+        // I3_[CellI] = tauScale3[CellI] * tr(Sij_[CellI] & Sij_[CellI] & Sij_[CellI]);
+        // I4_[CellI] = tauScale3[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI]);
+        // I5_[CellI] = tauScale4[CellI] * tr(Omegaij_[CellI] & Omegaij_[CellI] & Sij_[CellI] & Sij_[CellI]);
+
+        // I4_3_[CellI] = I4_[CellI] * I4_[CellI] * I4_[CellI];  // I4^3
+        // I1_2_[CellI] = I1_[CellI] * I1_[CellI];  // I1^2
+        // I1_2_I5_[CellI] = I1_2_[CellI] * I5_[CellI];  // I1^2 * I5
+        // I1_I4_[CellI] = I1_[CellI] * I4_[CellI];  // I1 * I4
 
         // Base tensors (dimensionless via tauScale powers)
         Tij2_[CellI] = symm((Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Sdim[CellI]));
         Tij3_[CellI] = symm(Sdim[CellI] & Sdim[CellI] - (scalar(1.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI])*tensor::I);
-        Tij4_[CellI] = symm(Odim[CellI] & Odim[CellI] - (scalar(1.0)/3.0)*tr(Odim[CellI] & Odim[CellI])*tensor::I);
-        Tij5_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
-        Tij6_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
-        Tij7_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Odim[CellI]));
-        Tij8_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Sdim[CellI]));
-        Tij9_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
-        Tij10_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
+        // Tij4_[CellI] = symm(Odim[CellI] & Odim[CellI] - (scalar(1.0)/3.0)*tr(Odim[CellI] & Odim[CellI])*tensor::I);
+        // Tij5_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
+        // Tij6_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
+        // Tij7_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Odim[CellI]));
+        // Tij8_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Sdim[CellI]));
+        // Tij9_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
+        // Tij10_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
     }
 
     dimensionedScalar nutMin("nutMin", dimensionSet(0, 2, -1, 0, 0, 0, 0), 1e-9);
@@ -1119,13 +1352,26 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // volScalarField alpha_A(I1_ * 0.0);
     if (anisotropyCorrection_)
     {
-        alpha_A_ = A0_
-                 + A1_*(I1_ - I1_mean_anisotropy) / I1_std_anisotropy
-                 + A2_*(I4_3_ - I4_3_mean_anisotropy) / I4_3_std_anisotropy;  // z-score standardisation
+        alpha_A_2_ = A0_2_
+                 + A1_2_*(I1_ - I1_mean_anisotropy) / I1_std_anisotropy
+                 + A2_2_*(I2_ - I2_mean_anisotropy) / I2_std_anisotropy;  // z-score standardisation
+        alpha_A_3_ = A0_3_
+                 + A1_3_*(I1_ - I1_mean_anisotropy) / I1_std_anisotropy
+                 + A2_3_*(I2_ - I2_mean_anisotropy) / I2_std_anisotropy;  // z-score standardisation
+                //  + A3_3_*(I1_2_I5_ - I1_2_I5_mean_anisotropy) / I1_2_I5_std_anisotropy;  // z-score standardisation
+        // alpha_A_8_ = A0_8_
+        //          + A1_8_*(I1_I4_ - I1_I4_mean_anisotropy) / I1_I4_std_anisotropy
+        //          + A2_8_*(I1_ - I1_mean_anisotropy) / I1_std_anisotropy;  // z-score standardisation                 
     }
 
+    anisotropyFactor_ = alpha_A_2_*Tij2_ + alpha_A_3_*Tij3_;
     // Update Reynolds stress tensor
-    bijDelta_ = bijDelta_ + ((nut*omega_/(k_ + this->kMin_))*(alpha_A_*Tij2_) - bijDelta_)*anisotropyRelaxation_;
+    bijDelta_ = bijDelta_ + ((nut*omega_/(k_ + this->kMin_))*anisotropyFactor_ - bijDelta_)*anisotropyRelaxation_;
+    
+    // Limit bijDelta to ensure physically valid Reynolds stress tensor
+    limitBijDelta();
+    
+    // Calculate total and updatedReynolds stress tensor
     Rij_ = ((2.0/3.0)*I)*k_ - 2.0*nut*Sij_ + 2*k_*bijDelta_;
 
     // Calculate production terms
@@ -1165,7 +1411,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
           + fvm::div(alphaRhoPhi, omega_)
           - fvm::laplacian(alpha*rho*DomegaEff(F1), omega_)
          ==
-            alpha()*rho()*gamma*(GbyNu0 + GbyNu0*separationFactor_)
+            alpha()*rho()*gamma*GbyNu0*(scalar(1) + separationFactor_())
           - fvm::SuSp((2.0/3.0)*alpha()*rho()*gamma*divU, omega_)
           - fvm::Sp(alpha()*rho()*beta*omega_(), omega_)
           - fvm::SuSp

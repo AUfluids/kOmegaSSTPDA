@@ -167,16 +167,26 @@ protected:
             dimensionedScalar lambda2_;
             dimensionedScalar C0_;
             dimensionedScalar C1_;
-            dimensionedScalar C2_;
+            dimensionedScalar C2_;    
 
             Switch anisotropyCorrection_;
             dimensionedScalar anisotropyRelaxation_;
-            dimensionedScalar A0_;
-            dimensionedScalar A1_;
-            dimensionedScalar A2_;
+            dimensionedScalar A0_2_;
+            dimensionedScalar A1_2_;
+            dimensionedScalar A2_2_;
+            dimensionedScalar A0_3_;
+            dimensionedScalar A1_3_;
+            dimensionedScalar A2_3_;
+            // dimensionedScalar A3_3_;
+            // dimensionedScalar A0_8_;
+            // dimensionedScalar A1_8_;
+            // dimensionedScalar A2_8_;
 
             //- Flag to include the F3 term
             Switch F3_;
+
+            //- Flag to write invariant and tensor fields
+            Switch writePDAFields_;
 
         // Z-score standardisation constants for separation correction
             const dimensionedScalar I1_mean_separation;
@@ -189,8 +199,14 @@ protected:
             const dimensionedScalar I1_std_anisotropy;
             const dimensionedScalar I2_mean_anisotropy;
             const dimensionedScalar I2_std_anisotropy;
-            const dimensionedScalar I4_3_mean_anisotropy;
-            const dimensionedScalar I4_3_std_anisotropy;
+            // const dimensionedScalar I4_3_mean_anisotropy;
+            // const dimensionedScalar I4_3_std_anisotropy;
+            // const dimensionedScalar I1_2_mean_anisotropy;
+            // const dimensionedScalar I1_2_std_anisotropy;
+            // const dimensionedScalar I1_2_I5_mean_anisotropy;
+            // const dimensionedScalar I1_2_I5_std_anisotropy;
+            // const dimensionedScalar I1_I4_mean_anisotropy;
+            // const dimensionedScalar I1_I4_std_anisotropy;
 
         // Fields
 
@@ -201,31 +217,40 @@ protected:
 
             volScalarField k_;
             volScalarField omega_;
+
+            // PDA correction factors
             volScalarField separationFactor_;
+            volSymmTensorField anisotropyFactor_;
             volSymmTensorField bijDelta_;
             volSymmTensorField Rij_;
 
-            volScalarField alpha_A_;
+            // PDA correction factors fields
             volScalarField alpha_S_;
+            volScalarField alpha_A_2_;
+            volScalarField alpha_A_3_;
+            // volScalarField alpha_A_8_;
 
             volScalarField I1_;
             volScalarField I2_;
-            volScalarField I3_;
-            volScalarField I4_;
-            volScalarField I4_3_;
-            volScalarField I5_;
+            // volScalarField I3_;
+            // volScalarField I4_;
+            // volScalarField I5_;
+            // volScalarField I4_3_;
+            // volScalarField I1_2_;
+            // volScalarField I1_2_I5_;
+            // volScalarField I1_I4_;
             
             volSymmTensorField Sij_;
             volTensorField Omegaij_;
             volSymmTensorField Tij2_;
             volSymmTensorField Tij3_;
-            volSymmTensorField Tij4_;
-            volSymmTensorField Tij5_;
-            volSymmTensorField Tij6_;
-            volSymmTensorField Tij7_;
-            volSymmTensorField Tij8_;
-            volSymmTensorField Tij9_;
-            volSymmTensorField Tij10_;
+            // volSymmTensorField Tij4_;
+            // volSymmTensorField Tij5_;
+            // volSymmTensorField Tij6_;
+            // volSymmTensorField Tij7_;
+            // volSymmTensorField Tij8_;
+            // volSymmTensorField Tij9_;
+            // volSymmTensorField Tij10_;
                 
         // Decay control
 
@@ -241,6 +266,9 @@ protected:
         void calculateInvariantsAndTensors();
         
         void setDecayControl(const dictionary& dict);
+
+        //- Limit bijDelta to ensure physically valid Reynolds stress tensor
+        void limitBijDelta();
 
         virtual tmp<volScalarField> F1(const volScalarField& CDkOmega) const;
         virtual tmp<volScalarField> F2() const;
