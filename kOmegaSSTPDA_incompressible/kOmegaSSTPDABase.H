@@ -163,11 +163,12 @@ protected:
             dimensionedScalar c1_;
 
             Switch separationCorrection_;
+            dimensionedScalar separationRelaxation_;
             dimensionedScalar lambda1_;
             dimensionedScalar lambda2_;
             dimensionedScalar C0_;
             dimensionedScalar C1_;
-            dimensionedScalar C2_;    
+            dimensionedScalar C2_;
 
             Switch anisotropyCorrection_;
             dimensionedScalar anisotropyRelaxation_;

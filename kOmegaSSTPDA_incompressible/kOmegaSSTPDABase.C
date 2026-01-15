@@ -68,6 +68,7 @@ License
             C0                  -2.070;             // optional - default taken from separationCorrection
             C1                  1.119;              // optional - default taken from separationCorrection
             C2                  -0.215;              // optional - default taken from separationCorrection
+            separationRelaxation     1.0;              // optional - default: 1.0 - relaxation factor for separation factor
 
 
             // Anisotropy secondary flow coefficients
@@ -755,6 +756,15 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
             -0.215
         )
     ),
+    separationRelaxation_
+    (
+        dimensioned<scalar>::getOrAddToDict
+        (
+            "separationRelaxation",
+            this->coeffDict_,
+            1.0
+        )
+    ),
     alpha_S_
     (
         IOobject
@@ -1210,6 +1220,7 @@ bool kOmegaSSTPDABase<BasicEddyViscosityModel>::read()
         C0_.readIfPresent(this->coeffDict());
         C1_.readIfPresent(this->coeffDict());
         C2_.readIfPresent(this->coeffDict());
+        separationRelaxation_.readIfPresent(this->coeffDict());
 
         // Secondary flow coefficients
         anisotropyCorrection_.readIfPresent("anisotropyCorrection", this->coeffDict());
@@ -1337,16 +1348,27 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
                  + C2_*(I2_ - I2_mean_separation) / I2_std_separation;  // z-score standardisation
     }
 
-    separationFactor_ = pow(
-        max
+    // Calculate target separation factor (before relaxation)
+    volScalarField separationFactorTarget
+    (
+        pow
         (
-            min
+            max
             (
-                (scalar(1)-pow(nut*omega_/k_, lambda1_.value())),
-                scalar(1)
-            ),
-            scalar(0)
-        ), lambda2_.value())*(alpha_S_);
+                min
+                (
+                    (scalar(1)-pow(nut*omega_/k_, lambda1_.value())),
+                    scalar(1)
+                ),
+                scalar(0)
+            ), 
+            lambda2_.value()
+        )*(alpha_S_)
+    );
+    
+    // Apply relaxation for robustness: new = old + (target - old) * relaxation
+    separationFactor_ = separationFactor_ 
+                      + (separationFactorTarget - separationFactor_)*separationRelaxation_;
 
     // Calculate secondary flow factor
     // volScalarField alpha_A(I1_ * 0.0);
