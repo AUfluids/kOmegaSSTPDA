@@ -224,6 +224,7 @@ protected:
             volSymmTensorField anisotropyFactor_;
             volSymmTensorField bijDelta_;
             volSymmTensorField Rij_;
+            volSymmTensorField Aij_;
 
             // PDA correction factors fields
             volScalarField alpha_S_;

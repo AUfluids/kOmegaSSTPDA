@@ -969,6 +969,19 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
         this->mesh_,
         dimensionedSymmTensor("zero", dimensionSet(0, 2, -2, 0, 0, 0, 0), symmTensor::zero)
     ),
+    Aij_
+    (
+        IOobject
+        (
+            IOobject::groupName("Aij", alphaRhoPhi.group()),
+            this->runTime_.timeName(),
+            this->mesh_,
+            IOobject::NO_READ,
+            writePDAFields_ ? IOobject::AUTO_WRITE : IOobject::NO_WRITE
+        ),
+        this->mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    ),
     F3_
     (
         Switch::getOrAddToDict
@@ -1393,8 +1406,13 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Limit bijDelta to ensure physically valid Reynolds stress tensor
     limitBijDelta();
     
-    // Calculate total and updatedReynolds stress tensor
+    // Calculate total and updated Reynolds stress tensor
     Rij_ = ((2.0/3.0)*I)*k_ - 2.0*nut*Sij_ + 2*k_*bijDelta_;
+    
+    // Calculate Reynolds stress anisotropy tensor
+    // Aij = (Rij - (2/3)*k*delta_ij) / (2*k)
+    const volScalarField kPlusMax(k_ + this->kMin_);
+    Aij_ = (Rij_ - (2.0/3.0)*k_*I) / (2.0*kPlusMax);
 
     // Calculate production terms
     volSymmTensorField dAij(2*k_*bijDelta_);
