@@ -169,19 +169,19 @@ protected:
             dimensionedScalar C0_;
             dimensionedScalar C1_;
             dimensionedScalar C2_;
+            dimensionedScalar C3_;
 
             Switch anisotropyCorrection_;
             dimensionedScalar anisotropyRelaxation_;
             dimensionedScalar A0_2_;
             dimensionedScalar A1_2_;
             dimensionedScalar A2_2_;
-            dimensionedScalar A0_3_;
-            dimensionedScalar A1_3_;
-            dimensionedScalar A2_3_;
-            // dimensionedScalar A3_3_;
-            // dimensionedScalar A0_8_;
-            // dimensionedScalar A1_8_;
-            // dimensionedScalar A2_8_;
+            // dimensionedScalar A0_3_;
+            // dimensionedScalar A1_3_;
+            // dimensionedScalar A2_3_;
+            dimensionedScalar A0_8_;
+            dimensionedScalar A1_8_;
+            dimensionedScalar A2_8_;
 
             //- Flag to include the F3 term
             Switch F3_;
@@ -194,12 +194,18 @@ protected:
             const dimensionedScalar I1_std_separation;
             const dimensionedScalar I2_mean_separation;
             const dimensionedScalar I2_std_separation;
+            const dimensionedScalar I3_mean_separation;
+            const dimensionedScalar I3_std_separation;
+            const dimensionedScalar I1_2_I2_mean_separation;
+            const dimensionedScalar I1_2_I2_std_separation;
 
         // Z-score standardisation constants for anisotropy correction
-            const dimensionedScalar I1_mean_anisotropy;
-            const dimensionedScalar I1_std_anisotropy;
+            // const dimensionedScalar I1_mean_anisotropy;
+            // const dimensionedScalar I1_std_anisotropy;
             const dimensionedScalar I2_mean_anisotropy;
             const dimensionedScalar I2_std_anisotropy;
+            const dimensionedScalar I4_2_mean_anisotropy;
+            const dimensionedScalar I4_2_std_anisotropy;
             // const dimensionedScalar I4_3_mean_anisotropy;
             // const dimensionedScalar I4_3_std_anisotropy;
             // const dimensionedScalar I1_2_mean_anisotropy;
@@ -229,28 +235,25 @@ protected:
             // PDA correction factors fields
             volScalarField alpha_S_;
             volScalarField alpha_A_2_;
-            volScalarField alpha_A_3_;
-            // volScalarField alpha_A_8_;
+            volScalarField alpha_A_8_;
 
             volScalarField I1_;
             volScalarField I2_;
-            // volScalarField I3_;
+            volScalarField I3_;
             // volScalarField I4_;
             // volScalarField I5_;
-            // volScalarField I4_3_;
-            // volScalarField I1_2_;
-            // volScalarField I1_2_I5_;
-            // volScalarField I1_I4_;
+            volScalarField I1_2_I2_;
+            volScalarField I4_2_;
             
             volSymmTensorField Sij_;
             volTensorField Omegaij_;
             volSymmTensorField Tij2_;
-            volSymmTensorField Tij3_;
+            // volSymmTensorField Tij3_;
             // volSymmTensorField Tij4_;
             // volSymmTensorField Tij5_;
             // volSymmTensorField Tij6_;
             // volSymmTensorField Tij7_;
-            // volSymmTensorField Tij8_;
+            volSymmTensorField Tij8_;
             // volSymmTensorField Tij9_;
             // volSymmTensorField Tij10_;
                 

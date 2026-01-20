@@ -398,6 +398,68 @@ bool calcPDAFields::write()
         Omegaij
     );
 
+    // Retrieve turbulent kinetic energy if available
+    const volScalarField* kPtr = nullptr;
+    if (mesh_.foundObject<volScalarField>(kName_))
+    {
+        kPtr = &mesh_.lookupObject<volScalarField>(kName_);
+    }
+
+    // Retrieve turbulent viscosity if available (fallback to zero)
+    const volScalarField* nutPtr =
+        mesh_.foundObject<volScalarField>("nut")
+            ? &mesh_.lookupObject<volScalarField>("nut")
+            : nullptr;
+
+    // Calculate total Reynolds stress tensor Rij
+    volSymmTensorField Rij
+    (
+        IOobject
+        (
+            "Rij",
+            time_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_,
+        dimensionedSymmTensor("zero", dimensionSet(0, 2, -2, 0, 0, 0, 0), symmTensor::zero)
+    );
+
+    if (kPtr && nutPtr)
+    {
+        const volScalarField& k = *kPtr;
+        Rij = ((2.0/3.0)*k)*symmTensor::I - 2.0*(*nutPtr)*Sij;
+    }
+    else if (kPtr)
+    {
+        const volScalarField& k = *kPtr;
+        Rij = ((2.0/3.0)*k)*symmTensor::I;
+    }
+
+    // Calculate Reynolds stress anisotropy tensor Aij
+    volSymmTensorField Aij
+    (
+        IOobject
+        (
+            "Aij",
+            time_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_,
+        dimensionedSymmTensor("zero", dimless, symmTensor::zero)
+    );
+
+    if (kPtr)
+    {
+        const volScalarField& k = *kPtr;
+        const dimensionedScalar kEps("kEps", k.dimensions(), epsilon_);
+        const volScalarField kPlusMax(k + kEps);
+        Aij = (Rij - ((2.0/3.0)*k)*symmTensor::I) / (2.0*kPlusMax);
+    }
+
     // Write fields
     I1.write();
     I2.write();
@@ -415,6 +477,8 @@ bool calcPDAFields::write()
     Tij10.write();
     SijField.write();
     OmegaijField.write();
+    Rij.write();
+    Aij.write();
 
     return true;
 }
