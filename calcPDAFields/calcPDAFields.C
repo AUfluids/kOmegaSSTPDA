@@ -437,12 +437,13 @@ bool calcPDAFields::write()
         Rij = ((2.0/3.0)*k)*symmTensor::I;
     }
 
-    // Calculate Reynolds stress anisotropy tensor Aij
-    volSymmTensorField Aij
+    // Calculate normalized Reynolds stress anisotropy tensor bij
+    // bij = (Rij - (2/3)*k*delta_ij) / (2*k)  (dimensionless)
+    volSymmTensorField bij
     (
         IOobject
         (
-            "Aij",
+            "bij",
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
@@ -457,7 +458,7 @@ bool calcPDAFields::write()
         const volScalarField& k = *kPtr;
         const dimensionedScalar kEps("kEps", k.dimensions(), epsilon_);
         const volScalarField kPlusMax(k + kEps);
-        Aij = (Rij - ((2.0/3.0)*k)*symmTensor::I) / (2.0*kPlusMax);
+        bij = (Rij - ((2.0/3.0)*k)*symmTensor::I) / (2.0*kPlusMax);
     }
 
     // Write fields
@@ -478,7 +479,7 @@ bool calcPDAFields::write()
     SijField.write();
     OmegaijField.write();
     Rij.write();
-    Aij.write();
+    bij.write();
 
     return true;
 }

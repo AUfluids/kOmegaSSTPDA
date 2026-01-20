@@ -170,18 +170,35 @@ protected:
             dimensionedScalar C1_;
             dimensionedScalar C2_;
             dimensionedScalar C3_;
+            dimensionedScalar C4_;
+            dimensionedScalar C5_;
 
             Switch anisotropyCorrection_;
             dimensionedScalar anisotropyRelaxation_;
             dimensionedScalar A0_2_;
             dimensionedScalar A1_2_;
             dimensionedScalar A2_2_;
-            // dimensionedScalar A0_3_;
-            // dimensionedScalar A1_3_;
-            // dimensionedScalar A2_3_;
-            dimensionedScalar A0_8_;
-            dimensionedScalar A1_8_;
-            dimensionedScalar A2_8_;
+            dimensionedScalar A3_2_;
+            dimensionedScalar A4_2_;
+            dimensionedScalar A5_2_;
+            dimensionedScalar A0_3_;
+            dimensionedScalar A1_3_;
+            dimensionedScalar A2_3_;
+            dimensionedScalar A3_3_;
+            dimensionedScalar A4_3_;
+            dimensionedScalar A5_3_;
+            dimensionedScalar A0_4_;
+            dimensionedScalar A1_4_;
+            dimensionedScalar A2_4_;
+            dimensionedScalar A3_4_;
+            dimensionedScalar A4_4_;
+            dimensionedScalar A5_4_;
+            dimensionedScalar A0_5_;
+            dimensionedScalar A1_5_;
+            dimensionedScalar A2_5_;
+            dimensionedScalar A3_5_;
+            dimensionedScalar A4_5_;
+            dimensionedScalar A5_5_;
 
             //- Flag to include the F3 term
             Switch F3_;
@@ -196,24 +213,22 @@ protected:
             const dimensionedScalar I2_std_separation;
             const dimensionedScalar I3_mean_separation;
             const dimensionedScalar I3_std_separation;
-            const dimensionedScalar I1_2_I2_mean_separation;
-            const dimensionedScalar I1_2_I2_std_separation;
+            const dimensionedScalar I4_mean_separation;
+            const dimensionedScalar I4_std_separation;
+            const dimensionedScalar I5_mean_separation;
+            const dimensionedScalar I5_std_separation;
 
         // Z-score standardisation constants for anisotropy correction
-            // const dimensionedScalar I1_mean_anisotropy;
-            // const dimensionedScalar I1_std_anisotropy;
+            const dimensionedScalar I1_mean_anisotropy;
+            const dimensionedScalar I1_std_anisotropy;
             const dimensionedScalar I2_mean_anisotropy;
             const dimensionedScalar I2_std_anisotropy;
-            const dimensionedScalar I4_2_mean_anisotropy;
-            const dimensionedScalar I4_2_std_anisotropy;
-            // const dimensionedScalar I4_3_mean_anisotropy;
-            // const dimensionedScalar I4_3_std_anisotropy;
-            // const dimensionedScalar I1_2_mean_anisotropy;
-            // const dimensionedScalar I1_2_std_anisotropy;
-            // const dimensionedScalar I1_2_I5_mean_anisotropy;
-            // const dimensionedScalar I1_2_I5_std_anisotropy;
-            // const dimensionedScalar I1_I4_mean_anisotropy;
-            // const dimensionedScalar I1_I4_std_anisotropy;
+            const dimensionedScalar I3_mean_anisotropy;
+            const dimensionedScalar I3_std_anisotropy;
+            const dimensionedScalar I4_mean_anisotropy;
+            const dimensionedScalar I4_std_anisotropy;
+            const dimensionedScalar I5_mean_anisotropy;
+            const dimensionedScalar I5_std_anisotropy;
 
         // Fields
 
@@ -230,30 +245,30 @@ protected:
             volSymmTensorField anisotropyFactor_;
             volSymmTensorField bijDelta_;
             volSymmTensorField Rij_;
-            volSymmTensorField Aij_;
+            volSymmTensorField bij_;
 
             // PDA correction factors fields
             volScalarField alpha_S_;
             volScalarField alpha_A_2_;
-            volScalarField alpha_A_8_;
+            volScalarField alpha_A_3_;
+            volScalarField alpha_A_4_;
+            volScalarField alpha_A_5_;
 
             volScalarField I1_;
             volScalarField I2_;
             volScalarField I3_;
-            // volScalarField I4_;
-            // volScalarField I5_;
-            volScalarField I1_2_I2_;
-            volScalarField I4_2_;
+            volScalarField I4_;
+            volScalarField I5_;
             
             volSymmTensorField Sij_;
             volTensorField Omegaij_;
             volSymmTensorField Tij2_;
-            // volSymmTensorField Tij3_;
-            // volSymmTensorField Tij4_;
-            // volSymmTensorField Tij5_;
+            volSymmTensorField Tij3_;
+            volSymmTensorField Tij4_;
+            volSymmTensorField Tij5_;
             // volSymmTensorField Tij6_;
             // volSymmTensorField Tij7_;
-            volSymmTensorField Tij8_;
+            // volSymmTensorField Tij8_;
             // volSymmTensorField Tij9_;
             // volSymmTensorField Tij10_;
                 
