@@ -1,0 +1,170 @@
+rm: cannot remove 'logs': No such file or directory
+   - Running simpleFoam
+   - Running post processing
+[15:08:25] INFO     Working directory:                      post_process.py:2226
+                    /data/common/projects/turbulence_modell                     
+                    ing/symbolic_regression/output/cfd/samp                     
+                    le_01/SD_ReB3500_AR1                                        
+           INFO     Plot options - Multi: True, Comparison: post_process.py:2227
+                    False, Barycentric: True, Anisotropy:                       
+                    False, Velocity profiles: True, Rij                         
+                    profiles: False, Diagonal profile: True                     
+           INFO     Processing time folder: 4000            post_process.py:2255
+           WARNING  Simulation reached maximum iterations   post_process.py:2269
+                    (4000). Using calculated objectives but                     
+                    marking as not converged.                                   
+           INFO     Using foam file: SD_ReB3500_AR1.foam     post_process.py:208
+           INFO     Loading OpenFOAM case from:              post_process.py:279
+                    /data/common/projects/turbulence_modelli                    
+                    ng/symbolic_regression/output/cfd/sample                    
+                    _01/SD_ReB3500_AR1/SD_ReB3500_AR1.foam                      
+           INFO     Available time values: [0.0, 4000.0]     post_process.py:284
+           INFO     Using time value: 4000.0                 post_process.py:292
+           INFO     Mesh loaded with 4802 points and 2304    post_process.py:301
+                    cells                                                       
+           INFO     Computing cell volumes from mesh         post_process.py:128
+                    geometry...                                                 
+[15:08:28] INFO     Retrieved 2304 cell volumes from mesh   post_process.py:2280
+           INFO     Calculated x midpoint: 0.025000 (range:  post_process.py:329
+                    0.000000 to 0.050000)                                       
+           INFO     Slicing mesh at x=0.025000 with normal:  post_process.py:337
+                    x                                                           
+           INFO     Sliced mesh has 2401 points              post_process.py:340
+           INFO     Loading reference data from time 0      post_process.py:2319
+                    using PyVista...                                            
+           INFO     Using foam file: SD_ReB3500_AR1.foam     post_process.py:208
+           INFO     Loading OpenFOAM case from:              post_process.py:279
+                    /data/common/projects/turbulence_modelli                    
+                    ng/symbolic_regression/output/cfd/sample                    
+                    _01/SD_ReB3500_AR1/SD_ReB3500_AR1.foam                      
+           INFO     Available time values: [0.0, 4000.0]     post_process.py:284
+           INFO     Using time value: 0.0                    post_process.py:292
+           INFO     Mesh loaded with 4802 points and 2304    post_process.py:301
+                    cells                                                       
+           INFO     Extracting reference fields from        post_process.py:2328
+                    mesh...                                                     
+           INFO     Interpolating reference fields to       post_process.py:2390
+                    current mesh...                                             
+[15:08:29] INFO     Using calculated objectives (fail-value post_process.py:2525
+                    override disabled)                                          
+           INFO     ======================================= post_process.py:2530
+                    =====================                                       
+           INFO     Objective Function Results:             post_process.py:2531
+           INFO       j1 (velocity error):     1.000545     post_process.py:2532
+           INFO       j2 (vorticity error):    1.000000     post_process.py:2533
+           INFO       J (combined):            1.000273     post_process.py:2534
+           INFO       Converged:               False        post_process.py:2535
+           INFO     ======================================= post_process.py:2536
+                    =====================                                       
+           INFO     Post-processing directory:              post_process.py:2541
+                    /data/common/projects/turbulence_modell                     
+                    ing/symbolic_regression/output/cfd/samp                     
+                    le_01/SD_ReB3500_AR1/postProcessing                         
+           INFO     Objective function results saved to:     post_process.py:651
+                    /data/common/projects/turbulence_modelli                    
+                    ng/symbolic_regression/output/cfd/sample                    
+                    _01/SD_ReB3500_AR1/postProcessing/object                    
+                    ive_fun_results.json                                        
+           INFO     Creating matplotlib visualisations...   post_process.py:2571
+           INFO     Creating multi plot...                  post_process.py:2575
+           INFO     Using foam file: SD_ReB3500_AR1.foam     post_process.py:208
+           INFO     Loading OpenFOAM case from:              post_process.py:279
+                    /data/common/projects/turbulence_modelli                    
+                    ng/symbolic_regression/output/cfd/sample                    
+                    _01/SD_ReB3500_AR1/SD_ReB3500_AR1.foam                      
+           INFO     Available time values: [0.0, 4000.0]     post_process.py:284
+           INFO     Using time value: 0.0                    post_process.py:292
+           INFO     Mesh loaded with 4802 points and 2304    post_process.py:301
+                    cells                                                       
+[15:08:31] INFO     Figure saved to:                        post_process.py:2634
+                    /data/common/projects/turbulence_modell                     
+                    ing/symbolic_regression/output/cfd/samp                     
+                    le_01/SD_ReB3500_AR1/postProcessing/SD_                     
+                    ReB3500_AR1_multi_.png                                      
+           INFO     Skipping comparison plot                post_process.py:2764
+                    (--plot-comparison flag not set)                            
+           INFO     Creating barycentric triangle plots...  post_process.py:2768
+           INFO     Using turbulenceProperties:R field      post_process.py:2784
+                    directly for kOmegaSSTPDA                                   
+           INFO     kOmegaSSTPDA: Rij shape (2304, 6)       post_process.py:2812
+           INFO     Using Rij_KOSST field for kOmegaSST     post_process.py:2820
+           INFO     Using Rij_HF field directly for High    post_process.py:2852
+                    Fidelity                                                    
+           INFO     HF: Rij shape (6, 2304)                 post_process.py:2897
+           INFO     kOmegaSST: Rij shape (2304, 6)          post_process.py:2907
+           INFO     Barycentric plot saved to:               post_process.py:902
+                    /data/common/projects/turbulence_modelli                    
+                    ng/symbolic_regression/output/cfd/sample                    
+                    _01/SD_ReB3500_AR1/postProcessing/SD_ReB                    
+                    3500_AR1_barycentric.png                                    
+           INFO     Skipping anisotropy contour plot        post_process.py:3094
+                    (--plot-anisotropy flag not set)                            
+           INFO     Creating velocity profiles plot...      post_process.py:3098
+[15:08:34] INFO     Velocity profiles plot saved to:        post_process.py:1218
+                    /data/common/projects/turbulence_modell                     
+                    ing/symbolic_regression/output/cfd/samp                     
+                    le_01/SD_ReB3500_AR1/postProcessing/SD_                     
+                    ReB3500_AR1_velocity_profiles.png                           
+           INFO     Skipping Rij profiles plot              post_process.py:3167
+                    (--plot-rij-profiles flag not set)                          
+           INFO     Creating diagonal velocity profile      post_process.py:3171
+                    plot...                                                     
+           WARNING  u_tau not found in mesh, using          post_process.py:1287
+                    approximate value: 0.024088 (0.05 *                         
+                    U_b)                                                        
+[15:08:35] INFO     Diagonal velocity profile plot saved    post_process.py:1406
+                    to:                                                         
+                    /data/common/projects/turbulence_modell                     
+                    ing/symbolic_regression/output/cfd/samp                     
+                    le_01/SD_ReB3500_AR1/postProcessing/SD_                     
+                    ReB3500_AR1_diagonal_profile.png                            
+Using:
+  case     : /data/common/projects/turbulence_modelling/symbolic_regression/output/cfd/sample_01/SD_ReB3500_AR1
+  log      : logs/simulation
+  database : /data/common/software/OpenFOAM/OpenFOAM-v2506/bin/tools/foamLog.db
+  awk file : logs/foamLog.awk
+  files to : logs
+
+Executing: awk -f logs/foamLog.awk logs/simulation
+
+Generated XY files for:
+    clockTime
+    contCumulative
+    contGlobal
+    contLocal
+    executionTime
+    k
+    kFinalRes
+    kIters
+    omega
+    omegaFinalRes
+    omegaIters
+    p
+    pFinalRes
+    pIters
+    Separator
+    Time
+    Ux
+    UxFinalRes
+    UxIters
+    Uy
+    UyFinalRes
+    UyIters
+    Uz
+    UzFinalRes
+    UzIters
+End
+[15:08:38] INFO     Working directory:                     plot_residuals.py:308
+                    /data/common/projects/turbulence_model                      
+                    ling/symbolic_regression/output/cfd/sa                      
+                    mple_01/SD_ReB3500_AR1                                      
+           INFO     Plot options - Continuity residuals:   plot_residuals.py:309
+                    True                                                        
+           INFO     Plotting linear residuals...           plot_residuals.py:349
+           INFO     Plotting continuity residuals...       plot_residuals.py:360
+[15:08:39] INFO     Residuals plot saved to:               plot_residuals.py:383
+                    /data/common/projects/turbulence_model                      
+                    ling/symbolic_regression/output/cfd/sa                      
+                    mple_01/SD_ReB3500_AR1/postProcessing/                      
+                    residuals.png                                               
+   - Simulation done :)

@@ -3,7 +3,7 @@ cd "${0%/*}" || exit   # Run from this directory
 . "${WM_PROJECT_DIR:?}"/wmake/scripts/AllwmakeParseArguments
 #------------------------------------------------------------------------------
 
-moduleName="kOmegaSSTPDA_incompressible"
+moduleName="kOmegaSSTPDA_symbolic_regression"
 
 if [ "$FOAM_MODULE_PREFIX" = false ]
 then
@@ -44,8 +44,83 @@ else
     echo "${WM_PROJECT_VERSION:-unknown}" >| foamVersionThisIsCompiledFor
 fi
 
-wmake kOmegaSSTPDA_incompressible
+# Check and setup ExprTK if needed
+if [ -f "kOmegaSSTPDA_symbolic_regression/Make/options.exprtk" ]; then
+    if [ ! -d "kOmegaSSTPDA_symbolic_regression/external/exprtk" ]; then
+        echo "  ExprTK not found. Attempting to download..."
+        cd kOmegaSSTPDA_symbolic_regression
+        mkdir -p external
+        cd external
+        if command -v git >/dev/null 2>&1; then
+            git clone https://github.com/ArashPartow/exprtk.git 2>&1 | head -5
+            if [ -d "exprtk" ]; then
+                echo "  ✓ ExprTK downloaded successfully"
+            else
+                echo "  ⚠ Warning: ExprTK download failed. Code will compile without expression evaluation."
+            fi
+        else
+            echo "  ⚠ Warning: git not found. Cannot download ExprTK automatically."
+            echo "            Please download manually: git clone https://github.com/ArashPartow/exprtk.git external/exprtk"
+        fi
+        cd ../..
+    else
+        echo "  ✓ ExprTK found in kOmegaSSTPDA_symbolic_regression/external/exprtk"
+    fi
+    
+    # Setup Make/options for ExprTK if options.exprtk exists and ExprTK is available
+    if [ -d "kOmegaSSTPDA_symbolic_regression/external/exprtk" ]; then
+        if [ ! -f "kOmegaSSTPDA_symbolic_regression/Make/options" ] || \
+           ! grep -q "EXPRTK_DIR" "kOmegaSSTPDA_symbolic_regression/Make/options" 2>/dev/null; then
+            echo "  Setting up Make/options for ExprTK..."
+            # Create clean Make/options file with ExprTK support
+            cat > kOmegaSSTPDA_symbolic_regression/Make/options << 'EOFMAKE'
+
+/* Failsafe - user location */
+ifeq (,$(strip $(FOAM_MODULE_APPBIN)))
+    FOAM_MODULE_APPBIN = $(FOAM_USER_APPBIN)
+endif
+ifeq (,$(strip $(FOAM_MODULE_LIBBIN)))
+    FOAM_MODULE_LIBBIN = $(FOAM_USER_LIBBIN)
+endif
+
+include $(GENERAL_RULES)/module-path-user
+
+EXPRTK_DIR = ./external/exprtk
+
+EXE_INC = \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/transportModels \
+    -I$(LIB_SRC)/TurbulenceModels/turbulenceModels/lnInclude \
+    -I$(LIB_SRC)/TurbulenceModels/incompressible/lnInclude \
+    -I./ \
+    -I$(EXPRTK_DIR) \
+    -DEXPRTK_AVAILABLE
+
+LIB_LIBS = \
+    -lturbulenceModels \
+    -lfiniteVolume \
+    -lmeshTools \
+    -lincompressibleTransportModels \
+    -lincompressibleTurbulenceModels \
+    -lstdc++
+EOFMAKE
+        fi
+    else
+        echo "  Note: Using Make/options without ExprTK (expressions will use hardcoded coefficients)"
+    fi
+    echo
+fi
+
+# Compile symbolic regression version (includes all features from incompressible)
+# This replaces kOmegaSSTPDA_incompressible
+echo "Compiling kOmegaSSTPDA_symbolic_regression..."
+wmake kOmegaSSTPDA_symbolic_regression
+
+# Compile compressible version (if needed)
 wmake kOmegaSSTPDA_compressible
+
+# Compile utility
 wmake libso calcPDAFields
 
 #------------------------------------------------------------------------------

@@ -1,0 +1,83 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox         |
+|  \\    /   O peration     | Version:  v2506                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      anisotropyExpressions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Symbolic regression expressions for anisotropy correction
+// Generated from PySR models
+//
+// Each tensor (Tij2, Tij3, etc.) can have its own expression.
+// Expressions replace the hardcoded calculations:
+//   alpha_A_i = A0_i + A1_i*I1 + A2_i*I2 + A3_i*I3 + A4_i*I4 + A5_i*I5
+//
+// The expressions are evaluated at runtime using ExprTK parser.
+// Variables I1-I5 in expressions are automatically normalized by the turbulence model
+// using mean and std values below before expression evaluation.
+// Expression syntax follows C++/ExprTK format - use I1, I2, etc. directly (not normalized form).
+
+// Variable definitions (normalization constants) - shared by all tensors
+// These are used by the turbulence model to normalize invariants: (I - mean) / std
+// The normalization is applied automatically before expression evaluation
+// The expressionParser automatically registers these as constants for ExprTK evaluation
+variables
+{
+    // Anisotropy correction normalization constants
+    I1_mean_anisotropy    0.03679851253346419;
+    I1_std_anisotropy     0.016109597689079515;
+    I2_mean_anisotropy    -0.03681156960681101;
+    I2_std_anisotropy     0.01612305604796805;
+    I3_mean_anisotropy    0.0;
+    I3_std_anisotropy     1.0;
+    I4_mean_anisotropy    7.606158379651854e-05;
+    I4_std_anisotropy     0.00014946062409414713;
+    I5_mean_anisotropy    -0.0008195433737371881;
+    I5_std_anisotropy     0.00043533017048806246;
+}
+
+// Tensor expressions - add/remove tensors as needed
+// Only tensors with non-empty expressions will be used
+tensors
+{
+    // Tij2 expression
+    // PySR-generated expression with embedded coefficients
+    // The expression below is evaluated cell-by-cell during the simulation.
+    // Replace with your PySR output using the pysr_to_openfoam.py script.
+    Tij2
+    {
+        expression     "-1.584 - 0.685*I1 - 0.178*I2";
+    }
+    
+    // Tij3 expression (uncomment and add PySR-generated expression)
+    // Tij3
+    // {
+    //     expression     "your_pysr_expression_here";
+    // }
+    
+    // Tij4 expression (uncomment to use, add PySR-generated expression)
+    // Tij4
+    // {
+    //     expression     "your_pysr_expression_here";
+    // }
+    
+    // Tij5 expression (uncomment to use, add PySR-generated expression)
+    // Tij5
+    // {
+    //     expression     "your_pysr_expression_here";
+    // }
+    
+    // Add more tensors (Tij6-Tij10) as needed following the same pattern
+    // Each tensor should have an "expression" key with the PySR-generated expression
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

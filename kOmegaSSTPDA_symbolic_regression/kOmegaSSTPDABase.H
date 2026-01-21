@@ -115,6 +115,11 @@ SeeAlso
 #ifndef kOmegaSSTPDABase_H
 #define kOmegaSSTPDABase_H
 
+#include "HashTable.H"
+#include "word.H"
+#include "Switch.H"
+#include "expressionParser.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -235,6 +240,20 @@ protected:
 
             //- Flag to write invariant and tensor fields
             Switch writePDAFields_;
+
+            //- Flag to use symbolic regression expressions
+            Switch useSymbolicRegression_;
+
+            //- Symbolic regression expression strings
+            string separationExpressionStr_;
+            HashTable<string> anisotropyExpressionStrs_;  // Map tensor index to expression string
+            
+            //- Expression parsers
+            mutable expressionParser* separationExpressionParser_;
+            mutable HashTable<expressionParser*> anisotropyExpressionParsers_;  // Map tensor index to parser
+            
+            //- Debug output flag
+            Switch debugSymbolicRegression_;
 
         // Z-score standardisation constants for separation correction
             const dimensionedScalar I1_mean_separation;
@@ -464,7 +483,17 @@ public:
 
 
     //- Destructor
-    virtual ~kOmegaSSTPDABase() = default;
+    virtual ~kOmegaSSTPDABase()
+    {
+        if (separationExpressionParser_)
+        {
+            delete separationExpressionParser_;
+        }
+        forAllConstIter(HashTable<expressionParser*>, anisotropyExpressionParsers_, iter)
+        {
+            delete iter();
+        }
+    }
 
 
     // Member Functions

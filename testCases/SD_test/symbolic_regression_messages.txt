@@ -1,0 +1,2 @@
+    Symbolic regression enabled: true
+    [CONSTRUCTOR] Attempting to read separation expression from: "constant/separationExpression.dict"

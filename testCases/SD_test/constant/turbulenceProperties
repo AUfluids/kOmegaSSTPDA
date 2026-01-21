@@ -22,20 +22,78 @@ RAS
     turbulence      on;
     printCoeffs     on;
 
-   // Separation coefficients
-   separationCorrection false;
-   C0 0;  // -2.070;
-   C1 0;  // 1.119;
-   C2 0;  // -0.215;
-   lambda1 1; // 18.622;
-   lambda2 1; // 4.698;
-
-   // Anisotropy coefficients
-   anisotropyCorrection true;
-   A0 -1;  // -1.584;
-   A1 -1;  // -0.685;
-   A2 -1;  // -0.178;
-   anisotropyRelaxation 0.6;  // Relaxation factor for more stable simulations
+    kOmegaSSTPDACoeffs
+    {
+        // ============================================================
+        // SYMBOLIC REGRESSION CONFIGURATION
+        // ============================================================
+        // Enable symbolic regression (set to true to use expressions from dictionaries)
+        // Expressions are evaluated at runtime using ExprTK parser
+        useSymbolicRegression    true;
+        
+        // Enable debug output for symbolic regression
+        // Shows expressions being loaded and alpha_S/alpha_A statistics every 100 iterations
+        debugSymbolicRegression  true;
+        
+        // Path to separation correction expression dictionary
+        // Format: expression string with normalized invariants, plus variables section
+        separationExpressionDict "constant/separationExpression.dict";
+        
+        // Path to consolidated anisotropy correction expressions dictionary
+        // Contains all tensor expressions (Tij2, Tij3, Tij4, etc.) in one file
+        // Format: variables section (shared) + tensors section with individual expressions
+        anisotropyExpressionsDict "constant/anisotropyExpressions.dict";
+        
+        // Optional: Write invariants and tensors for post-processing
+        writeInvariantsAndTensors true;
+        
+        // ============================================================
+        // STANDARD k-omega-SST COEFFICIENTS
+        // ============================================================
+        alphaK1         0.85;
+        alphaK2         1.0;
+        alphaOmega1     0.5;
+        alphaOmega2     0.856;
+        beta1           0.075;
+        beta2           0.0828;
+        betaStar        0.09;
+        gamma1          0.5556;
+        gamma2          0.44;
+        a1              0.31;
+        b1              1.0;
+        c1              10.0;
+        F3              no;
+        
+        // ============================================================
+        // SEPARATION CORRECTION (fallback if symbolic regression disabled)
+        // ============================================================
+        separationCorrection      false;
+        lambda1                  18.622;
+        lambda2                  4.698;
+        C0                       0.0;  // Used if symbolic regression disabled
+        C1                       0.0;   // Used if symbolic regression disabled
+        C2                       0.0;  // Used if symbolic regression disabled
+        C3                       0.0;
+        C4                       0.0;
+        C5                       0.0;
+        separationRelaxation     0.7;
+        
+        // ============================================================
+        // ANISOTROPY CORRECTION (fallback if symbolic regression disabled)
+        // ============================================================
+        anisotropyCorrection       true;
+        anisotropyRelaxation      0.6;
+        
+        // Anisotropy coefficients for Tij2 (used if symbolic regression disabled)
+        A0_2                      0.0;
+        A1_2                      0.0;
+        A2_2                      0.0;
+        A3_2                      0.0;
+        A4_2                      0.0;
+        A5_2                      0.0;
+        
+        // Add coefficients for other tensors (Tij3-Tij10) as needed
+    }
 }
 
 // ************************************************************************* //

@@ -1,0 +1,57 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _615aae61d7-20250627 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : simpleFoam
+Date   : Jan 21 2026
+Time   : 15:46:20
+Host   : flowsim02.kamstrup.dk
+PID    : 3701098
+I/O    : uncollated
+Case   : /data/common/projects/turbulence_modelling/tests/SD_ReB3500_AR1
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+
+SIMPLE: convergence criteria
+    field "(U|p|k|epsilon)"	 tolerance 1e-05
+
+Reading field p
+
+Reading field U
+
+Reading/calculating face flux field phi
+
+Selecting incompressible transport model Newtonian
+Selecting turbulence model type RAS
+Selecting RAS turbulence model kOmegaSSTPDA
+Selecting patchDistMethod meshWave
+========================================
+[CONSTRUCTOR] SYMBOLIC REGRESSION INIT
+========================================
+[0;32m    Symbolic regression enabled: true[0m
+    Debug symbolic regression: true
+    [CONSTRUCTOR] Reading symbolic regression expressions...
+    [CONSTRUCTOR] Attempting to read separation expression from: "constant/separationExpression.dict"
+
+
+--> FOAM FATAL ERROR: (openfoam-2506)
+cannot find file "/data/common/projects/turbulence_modelling/tests/SD_ReB3500_AR1/constant/constant/separationExpression.dict"
+
+    From virtual Foam::autoPtr<Foam::ISstream> Foam::fileOperations::uncollatedFileOperation::readStream(Foam::regIOobject&, const Foam::fileName&, const Foam::word&, bool) const
+    in file global/fileOperations/uncollatedFileOperation/uncollatedFileOperation.C at line 629.
+
+FOAM exiting
+

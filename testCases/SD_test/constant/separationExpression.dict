@@ -1,0 +1,53 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox         |
+|  \\    /   O peration     | Version:  v2506                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      separationExpression;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Symbolic regression expression for separation correction
+// Generated from PySR model
+// 
+// This expression replaces the hardcoded calculation:
+//   alpha_S = C0 + C1*I1 + C2*I2 + C3*I3 + C4*I4 + C5*I5
+//
+// The expression is evaluated at runtime using ExprTK parser.
+// Variables I1-I5 in expressions are automatically normalized by the turbulence model
+// using mean and std values below before expression evaluation.
+// Expression syntax follows C++/ExprTK format - use I1, I2, etc. directly (not normalized form).
+
+// PySR-generated expression with embedded coefficients
+// The expression below is evaluated cell-by-cell during the simulation.
+// Replace with your PySR output using the pysr_to_openfoam.py script.
+
+expression     "-2.070 + 1.119*I1 - 0.215*I2";
+
+// Variable definitions (normalization constants)
+// These are used by the turbulence model to normalize invariants: (I - mean) / std
+// The normalization is applied automatically before expression evaluation
+// The expressionParser automatically registers these as constants for ExprTK evaluation
+variables
+{
+    // Separation correction normalization constants
+    I1_mean_separation    0.029745472322525918;
+    I1_std_separation     0.01781867158784395;
+    I2_mean_separation    -0.024867181279038093;
+    I2_std_separation     0.01800275771769106;
+    I3_mean_separation    7.935733464624863e-06;
+    I3_std_separation     0.00010183240848778372;
+    I4_mean_separation    -2.3092425370425096e-07;
+    I4_std_separation     2.7771796282956458e-05;
+    I5_mean_separation    -0.0004981212641134251;
+    I5_std_separation     0.0004679466893069297;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

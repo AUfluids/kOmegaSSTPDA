@@ -98,6 +98,7 @@ Note for Developers
 #include "fvOptions.H"
 #include "bound.H"
 #include "wallDist.H"
+#include "IOdictionary.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -1609,6 +1610,12 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
     useI5_(false),
     useTij2_(false),
     useTij3_(false),
+    useSymbolicRegression_(false),
+    separationExpressionStr_(""),
+    anisotropyExpressionStrs_(),
+    separationExpressionParser_(nullptr),
+    anisotropyExpressionParsers_(),
+    debugSymbolicRegression_(false),
     useTij4_(false),
     useTij5_(false),
     useTij6_(false),
@@ -1621,6 +1628,159 @@ kOmegaSSTPDABase<BasicEddyViscosityModel>::kOmegaSSTPDABase
     bound(omega_, this->omegaMin_);
 
     setDecayControl(this->coeffDict_);
+    
+    // Read symbolic regression configuration from constructor
+    // (in case read() is not called during initialization)
+    useSymbolicRegression_.readIfPresent("useSymbolicRegression", this->coeffDict_);
+    debugSymbolicRegression_.readIfPresent("debugSymbolicRegression", this->coeffDict_);
+    
+    Pout<< "========================================" << endl;
+    Pout<< "[CONSTRUCTOR] SYMBOLIC REGRESSION INIT" << endl;
+    Pout<< "========================================" << endl;
+    Pout<< "    Symbolic regression enabled: " << useSymbolicRegression_ << endl;
+    Pout<< "    Debug symbolic regression: " << debugSymbolicRegression_ << endl;
+    
+    // Read expression dictionaries if symbolic regression is enabled
+    if (useSymbolicRegression_)
+    {
+        Pout<< "    [CONSTRUCTOR] Reading symbolic regression expressions..." << endl;
+        
+        // Read separation expression
+        if (this->coeffDict_.found("separationExpressionDict"))
+        {
+            fileName exprFile(this->coeffDict_.lookup("separationExpressionDict"));
+            // Remove "constant/" prefix if present, as runTime_.constant() already provides it
+            if (exprFile.find("constant/") == 0)
+            {
+                exprFile = exprFile.substr(9); // Remove "constant/" (9 characters)
+            }
+            Pout<< "    [CONSTRUCTOR] Attempting to read separation expression from: constant/" << exprFile << endl;
+            IOdictionary exprDict
+            (
+                IOobject
+                (
+                    exprFile,
+                    this->runTime_.constant(),
+                    this->mesh_,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                )
+            );
+            
+            if (exprDict.found("expression"))
+            {
+                separationExpressionStr_ = exprDict.lookupOrDefault<string>("expression", "");
+                Pout<< "    [CONSTRUCTOR] Loaded separation expression:" << nl
+                    << "        " << separationExpressionStr_ << endl;
+                
+                // Create expression parser
+                separationExpressionParser_ = new expressionParser(exprDict);
+                
+                if (separationExpressionParser_->isValid())
+                {
+                    Pout<< "    [CONSTRUCTOR] Separation expression compiled successfully!" << endl;
+                }
+                else
+                {
+                    Pout<< "    [CONSTRUCTOR] ERROR: Failed to compile separation expression!" << endl;
+                    WarningInFunction
+                        << "Failed to compile separation expression. Falling back to hardcoded coefficients." << endl;
+                }
+            }
+            else
+            {
+                WarningInFunction
+                    << "Expression dictionary " << exprFile
+                    << " does not contain 'expression' key" << endl;
+            }
+        }
+        else
+        {
+            Pout<< "    [CONSTRUCTOR] WARNING: separationExpressionDict not found in turbulenceProperties" << endl;
+        }
+        
+        // Read consolidated anisotropy expressions
+        if (this->coeffDict_.found("anisotropyExpressionsDict"))
+        {
+            fileName exprFile(this->coeffDict_.lookup("anisotropyExpressionsDict"));
+            // Remove "constant/" prefix if present, as runTime_.constant() already provides it
+            if (exprFile.find("constant/") == 0)
+            {
+                exprFile = exprFile.substr(9); // Remove "constant/" (9 characters)
+            }
+            Pout<< "    [CONSTRUCTOR] Attempting to read anisotropy expressions from: constant/" << exprFile << endl;
+            IOdictionary exprDict
+            (
+                IOobject
+                (
+                    exprFile,
+                    this->runTime_.constant(),
+                    this->mesh_,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                )
+            );
+            
+            if (exprDict.found("tensors"))
+            {
+                const dictionary& tensorsDict = exprDict.subDict("tensors");
+                
+                // Read each tensor expression
+                for (label i = 2; i <= 10; ++i)
+                {
+                    word tensorName("Tij" + name(i));
+                    if (tensorsDict.found(tensorName))
+                    {
+                        const dictionary& tensorDict = tensorsDict.subDict(tensorName);
+                        if (tensorDict.found("expression"))
+                        {
+                            string exprStr = tensorDict.lookupOrDefault<string>("expression", "");
+                            word key = name(i);  // Convert label to word for HashTable key
+                            anisotropyExpressionStrs_.insert(key, exprStr);
+                            Pout<< "    [CONSTRUCTOR] Loaded " << tensorName
+                                << " expression:" << nl
+                                << "        " << exprStr << endl;
+                            
+                            // Create expression parser for this tensor
+                            // Create parser from the full anisotropy dictionary (to get variables)
+                            dictionary mergedDict(exprDict);
+                            mergedDict.merge(tensorDict);
+                            
+                            expressionParser* parser = new expressionParser(mergedDict);
+                            anisotropyExpressionParsers_.insert(key, parser);
+                            
+                            if (parser->isValid())
+                            {
+                                Pout<< "    [CONSTRUCTOR] " << tensorName 
+                                    << " expression compiled successfully!" << endl;
+                            }
+                            else
+                            {
+                                Pout<< "    [CONSTRUCTOR] ERROR: Failed to compile " << tensorName << " expression!" << endl;
+                                WarningInFunction
+                                    << "Failed to compile " << tensorName 
+                                    << " expression. Falling back to hardcoded coefficients." << endl;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                WarningInFunction
+                    << "Anisotropy expressions dictionary " << exprFile
+                    << " does not contain 'tensors' section" << endl;
+            }
+        }
+        else
+        {
+            Pout<< "    [CONSTRUCTOR] WARNING: anisotropyExpressionsDict not found in turbulenceProperties" << endl;
+        }
+    }
+    else
+    {
+        Pout<< "    [CONSTRUCTOR] Symbolic regression is disabled. Using hardcoded coefficients." << endl;
+    }
     
     // Check which coefficients are present and set flags accordingly
     checkActiveCoefficients();
@@ -1753,6 +1913,163 @@ bool kOmegaSSTPDABase<BasicEddyViscosityModel>::read()
         c1_.readIfPresent(this->coeffDict());
         F3_.readIfPresent("F3", this->coeffDict());
         writePDAFields_.readIfPresent("writeInvariantsAndTensors", this->coeffDict());
+        
+        // Symbolic regression configuration
+        useSymbolicRegression_.readIfPresent("useSymbolicRegression", this->coeffDict());
+        debugSymbolicRegression_.readIfPresent("debugSymbolicRegression", this->coeffDict());
+        
+        Pout<< "========================================" << endl;
+        Pout<< "SYMBOLIC REGRESSION CONFIGURATION" << endl;
+        Pout<< "========================================" << endl;
+        Pout<< "    Symbolic regression enabled: " << useSymbolicRegression_ << endl;
+        Pout<< "    Debug symbolic regression: " << debugSymbolicRegression_ << endl;
+        Pout<< "========================================" << endl;
+        
+        // Read expression dictionaries if symbolic regression is enabled
+        if (useSymbolicRegression_)
+        {
+            // Read separation expression
+            if (this->coeffDict().found("separationExpressionDict"))
+            {
+                fileName exprFile(this->coeffDict().lookup("separationExpressionDict"));
+                // Remove "constant/" prefix if present, as runTime_.constant() already provides it
+                if (exprFile.find("constant/") == 0)
+                {
+                    exprFile = exprFile.substr(9); // Remove "constant/" (9 characters)
+                }
+                Pout<< "    [SR] Attempting to read separation expression from: constant/" << exprFile << endl;
+                IOdictionary exprDict
+                (
+                    IOobject
+                    (
+                        exprFile,
+                        this->runTime_.constant(),
+                        this->mesh_,
+                        IOobject::MUST_READ,
+                        IOobject::NO_WRITE
+                    )
+                );
+                
+                if (exprDict.found("expression"))
+                {
+                    separationExpressionStr_ = exprDict.lookupOrDefault<string>("expression", "");
+                    Pout<< "    [SR] Loaded separation expression:" << nl
+                        << "        " << separationExpressionStr_ << endl;
+                    
+                    // Create expression parser
+                    if (separationExpressionParser_)
+                    {
+                        delete separationExpressionParser_;
+                    }
+                    separationExpressionParser_ = new expressionParser(exprDict);
+                    
+                    if (separationExpressionParser_->isValid())
+                    {
+                        Pout<< "    [SR] Separation expression compiled successfully!" << endl;
+                    }
+                    else
+                    {
+                        Pout<< "    [SR] ERROR: Failed to compile separation expression!" << endl;
+                        WarningInFunction
+                            << "Failed to compile separation expression. Falling back to hardcoded coefficients." << endl;
+                    }
+                }
+                else
+                {
+                    WarningInFunction
+                        << "Expression dictionary " << exprFile
+                        << " does not contain 'expression' key" << endl;
+                }
+            }
+            
+            // Read consolidated anisotropy expressions
+            if (this->coeffDict().found("anisotropyExpressionsDict"))
+            {
+                fileName exprFile(this->coeffDict().lookup("anisotropyExpressionsDict"));
+                // Remove "constant/" prefix if present, as runTime_.constant() already provides it
+                if (exprFile.find("constant/") == 0)
+                {
+                    exprFile = exprFile.substr(9); // Remove "constant/" (9 characters)
+                }
+                Pout<< "    [SR] Attempting to read anisotropy expressions from: constant/" << exprFile << endl;
+                IOdictionary exprDict
+                (
+                    IOobject
+                    (
+                        exprFile,
+                        this->runTime_.constant(),
+                        this->mesh_,
+                        IOobject::MUST_READ,
+                        IOobject::NO_WRITE
+                    )
+                );
+                
+                if (exprDict.found("tensors"))
+                {
+                    const dictionary& tensorsDict = exprDict.subDict("tensors");
+                    
+                    // Read each tensor expression
+                    for (label i = 2; i <= 10; ++i)
+                    {
+                        word tensorName("Tij" + name(i));
+                        if (tensorsDict.found(tensorName))
+                        {
+                            const dictionary& tensorDict = tensorsDict.subDict(tensorName);
+                            if (tensorDict.found("expression"))
+                            {
+                            string exprStr = tensorDict.lookupOrDefault<string>("expression", "");
+                            word key = name(i);  // Convert label to word for HashTable key
+                            anisotropyExpressionStrs_.insert(key, exprStr);
+                            Pout<< "    [SR] Loaded " << tensorName
+                                << " expression:" << nl
+                                << "        " << exprStr << endl;
+                                
+                                // Create expression parser for this tensor
+                                if (anisotropyExpressionParsers_.found(key))
+                                {
+                                    delete anisotropyExpressionParsers_[key];
+                                }
+                                
+                                // Create parser from the full anisotropy dictionary (to get variables)
+                                // We need to merge the tensor-specific expression with the variables
+                                dictionary mergedDict(exprDict);
+                                mergedDict.merge(tensorDict);
+                                
+                                expressionParser* parser = new expressionParser(mergedDict);
+                                anisotropyExpressionParsers_.insert(key, parser);
+                                
+                            if (parser->isValid())
+                            {
+                                Pout<< "    [SR] " << tensorName 
+                                    << " expression compiled successfully!" << endl;
+                            }
+                            else
+                            {
+                                Pout<< "    [SR] ERROR: Failed to compile " << tensorName << " expression!" << endl;
+                                WarningInFunction
+                                    << "Failed to compile " << tensorName 
+                                    << " expression. Falling back to hardcoded coefficients." << endl;
+                            }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    WarningInFunction
+                        << "Anisotropy expressions dictionary " << exprFile
+                        << " does not contain 'tensors' section" << endl;
+                }
+            }
+            else
+            {
+                Info<< "    Warning: anisotropyExpressionsDict not found in turbulenceProperties" << endl;
+            }
+        }
+        else
+        {
+            Info<< "    Symbolic regression is disabled. Using hardcoded coefficients." << endl;
+        }
 
         // Separation correction coefficients
         separationCorrection_.readIfPresent("separationCorrection", this->coeffDict());
@@ -2009,26 +2326,73 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Only include terms for invariants that have non-zero coefficients
     if (separationCorrection_)
     {
-        alpha_S_ = C0_;
-        if (useI1_)
+        if (useSymbolicRegression_ && separationExpressionParser_ && separationExpressionParser_->isValid())
         {
-            alpha_S_ += C1_*(I1_ - I1_mean_separation.value())/I1_std_separation.value();
+            // Evaluate symbolic regression expression
+            // Create normalized invariant fields for expression evaluation
+            volScalarField I1_norm((I1_ - I1_mean_separation)/I1_std_separation);
+            volScalarField I2_norm((I2_ - I2_mean_separation)/I2_std_separation);
+            volScalarField I3_norm((I3_ - I3_mean_separation)/I3_std_separation);
+            volScalarField I4_norm((I4_ - I4_mean_separation)/I4_std_separation);
+            volScalarField I5_norm((I5_ - I5_mean_separation)/I5_std_separation);
+            
+            // Register field variables with parser
+            separationExpressionParser_->registerFieldVariable("I1", I1_norm);
+            separationExpressionParser_->registerFieldVariable("I2", I2_norm);
+            separationExpressionParser_->registerFieldVariable("I3", I3_norm);
+            separationExpressionParser_->registerFieldVariable("I4", I4_norm);
+            separationExpressionParser_->registerFieldVariable("I5", I5_norm);
+            
+            // Evaluate expression
+            separationExpressionParser_->evaluateField(alpha_S_);
         }
-        if (useI2_)
+        else
         {
-            alpha_S_ += C2_*(I2_ - I2_mean_separation.value())/I2_std_separation.value();
+            // Fall back to hardcoded calculation
+            alpha_S_ = C0_;
+            if (useI1_)
+            {
+                alpha_S_ += C1_*(I1_ - I1_mean_separation.value())/I1_std_separation.value();
+            }
+            if (useI2_)
+            {
+                alpha_S_ += C2_*(I2_ - I2_mean_separation.value())/I2_std_separation.value();
+            }
+            if (useI3_)
+            {
+                alpha_S_ += C3_*(I3_ - I3_mean_separation.value())/I3_std_separation.value();
+            }
+            if (useI4_)
+            {
+                alpha_S_ += C4_*(I4_ - I4_mean_separation.value())/I4_std_separation.value();
+            }
+            if (useI5_)
+            {
+                alpha_S_ += C5_*(I5_ - I5_mean_separation.value())/I5_std_separation.value();
+            }
         }
-        if (useI3_)
+        
+        // Debug output
+        static label debugCounter = 0;
+        debugCounter++;
+        if (debugSymbolicRegression_ && (debugCounter % 100 == 0))
         {
-            alpha_S_ += C3_*(I3_ - I3_mean_separation.value())/I3_std_separation.value();
-        }
-        if (useI4_)
-        {
-            alpha_S_ += C4_*(I4_ - I4_mean_separation.value())/I4_std_separation.value();
-        }
-        if (useI5_)
-        {
-            alpha_S_ += C5_*(I5_ - I5_mean_separation.value())/I5_std_separation.value();
+            Info<< nl << "    ========================================" << nl
+                << "    [Debug] Symbolic Regression - Separation" << nl
+                << "    ========================================" << nl
+                << "    Iteration: " << debugCounter << nl
+                << "    alpha_S statistics:" << nl
+                << "        min: " << min(alpha_S_).value() << nl
+                << "        max: " << max(alpha_S_).value() << nl
+                << "        mean: " << average(alpha_S_).value() << nl
+                << "        method: " 
+                << (useSymbolicRegression_ && separationExpressionParser_ && separationExpressionParser_->isValid()
+                    ? "symbolic regression" : "hardcoded coefficients") << nl;
+            if (useSymbolicRegression_ && separationExpressionParser_ && separationExpressionParser_->isValid())
+            {
+                Info<< "        expression: " << separationExpressionStr_ << nl;
+            }
+            Info<< "    ========================================" << nl << endl;
         }
     }
 
@@ -2061,12 +2425,63 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     {
         if (useTij2_)
         {
-            alpha_A_2_ = A0_2_;
-            if (useI1_) alpha_A_2_ += A1_2_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_2_ += A2_2_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_2_ += A3_2_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_2_ += A4_2_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_2_ += A5_2_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+            word key2 = name(2);  // Convert label to word for HashTable key
+            if (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
+                && anisotropyExpressionParsers_[key2] && anisotropyExpressionParsers_[key2]->isValid())
+            {
+                // Evaluate symbolic regression expression
+                // Create normalized invariant fields
+                volScalarField I1_norm((I1_ - I1_mean_anisotropy)/I1_std_anisotropy);
+                volScalarField I2_norm((I2_ - I2_mean_anisotropy)/I2_std_anisotropy);
+                volScalarField I3_norm((I3_ - I3_mean_anisotropy)/I3_std_anisotropy);
+                volScalarField I4_norm((I4_ - I4_mean_anisotropy)/I4_std_anisotropy);
+                volScalarField I5_norm((I5_ - I5_mean_anisotropy)/I5_std_anisotropy);
+                
+                // Register field variables
+                expressionParser* parser = anisotropyExpressionParsers_[key2];
+                parser->registerFieldVariable("I1", I1_norm);
+                parser->registerFieldVariable("I2", I2_norm);
+                parser->registerFieldVariable("I3", I3_norm);
+                parser->registerFieldVariable("I4", I4_norm);
+                parser->registerFieldVariable("I5", I5_norm);
+                
+                // Evaluate expression
+                parser->evaluateField(alpha_A_2_);
+            }
+            else
+            {
+                // Fall back to hardcoded calculation
+                alpha_A_2_ = A0_2_;
+                if (useI1_) alpha_A_2_ += A1_2_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                if (useI2_) alpha_A_2_ += A2_2_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                if (useI3_) alpha_A_2_ += A3_2_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                if (useI4_) alpha_A_2_ += A4_2_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                if (useI5_) alpha_A_2_ += A5_2_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+            }
+            
+            static label debugCounterTij2 = 0;
+            debugCounterTij2++;
+            if (debugSymbolicRegression_ && (debugCounterTij2 % 100 == 0))
+            {
+                Pout<< nl << "========================================" << nl
+                    << "[DEBUG] Symbolic Regression - Tij2" << nl
+                    << "========================================" << nl
+                    << "    Iteration: " << debugCounterTij2 << nl
+                    << "    alpha_A_2 statistics:" << nl
+                    << "        min: " << min(alpha_A_2_).value() << nl
+                    << "        max: " << max(alpha_A_2_).value() << nl
+                    << "        mean: " << average(alpha_A_2_).value() << nl
+                    << "        method: " 
+                    << (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
+                        && anisotropyExpressionParsers_[key2] && anisotropyExpressionParsers_[key2]->isValid()
+                        ? "symbolic regression" : "hardcoded coefficients") << nl;
+                if (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
+                    && anisotropyExpressionParsers_[key2] && anisotropyExpressionParsers_[key2]->isValid())
+                {
+                    Pout<< "        expression: " << anisotropyExpressionStrs_[key2] << nl;
+                }
+                Pout<< "========================================" << nl << endl;
+            }
         }
         if (useTij3_)
         {
@@ -2153,6 +2568,27 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     if (useTij8_) anisotropyFactor_ += alpha_A_8_*Tij8_;
     if (useTij9_) anisotropyFactor_ += alpha_A_9_*Tij9_;
     if (useTij10_) anisotropyFactor_ += alpha_A_10_*Tij10_;
+    
+    // Debug output for anisotropy factor
+    static label anisotropyDebugCounter = 0;
+    if (debugSymbolicRegression_ && anisotropyCorrection_ && (anisotropyDebugCounter++ % 100 == 0))
+    {
+        Info<< "    [Debug] anisotropyFactor statistics (iteration " << anisotropyDebugCounter << "):" << nl
+            << "        min trace: " << min(tr(anisotropyFactor_)).value() << nl
+            << "        max trace: " << max(tr(anisotropyFactor_)).value() << nl
+            << "        mean trace: " << average(tr(anisotropyFactor_)).value() << nl
+            << "        Active tensors: ";
+        if (useTij2_) Info<< "Tij2 ";
+        if (useTij3_) Info<< "Tij3 ";
+        if (useTij4_) Info<< "Tij4 ";
+        if (useTij5_) Info<< "Tij5 ";
+        if (useTij6_) Info<< "Tij6 ";
+        if (useTij7_) Info<< "Tij7 ";
+        if (useTij8_) Info<< "Tij8 ";
+        if (useTij9_) Info<< "Tij9 ";
+        if (useTij10_) Info<< "Tij10 ";
+        Info<< endl;
+    }
     // Update Reynolds stress tensor
     bijDelta_ = bijDelta_ + ((nut*omega_/(k_ + this->kMin_))*anisotropyFactor_ - bijDelta_)*anisotropyRelaxation_;
     

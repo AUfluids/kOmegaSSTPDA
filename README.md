@@ -41,12 +41,30 @@ The k-omega-SST-PDA model is a progressive data-augmented turbulence model that 
 - C++11 or later
 
 ## Installation
+
+### Standard Installation (with Symbolic Regression Support)
+
 1. Clone the repository:
      ```
      git clone https://github.com/AUfluids/kOmegaSSTPDA.git
+     cd kOmegaSSTPDA
      ```
 
-2. Make the installation script executable:
+2. Compile the package:
+     ```
+     ./Allwclean
+     ./Allwmake
+     ```
+
+   This will automatically:
+   - Download ExprTK (if needed) for symbolic regression support
+   - Compile `kOmegaSSTPDA_symbolic_regression` (replaces `kOmegaSSTPDA_incompressible`)
+   - Compile `kOmegaSSTPDA_compressible`
+   - Compile `calcPDAFields` utility
+
+### Manual Installation
+
+If you prefer manual compilation:
      ```
      cd kOmegaSSTPDA
      chmod a+x Allwmake
