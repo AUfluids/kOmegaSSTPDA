@@ -2218,8 +2218,20 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
         I5_ = (tauScale4 * tr(Omegaij_ & Omegaij_ & Sij_ & Sij_));
     }
 
-    // Calculate base tensors (dimensionless using Sdim/Odim) - only if coefficients are present
-    if (useTij2_)
+    // Calculate base tensors (dimensionless using Sdim/Odim) - only if coefficients are present OR symbolic regression enabled
+    // For Tij2, also check if symbolic regression is enabled
+    bool needTij2 = useTij2_;
+    if (useSymbolicRegression_ && anisotropyCorrection_)
+    {
+        word key2 = name(2);
+        if (anisotropyExpressionParsers_.found(key2) && 
+            anisotropyExpressionParsers_[key2] && 
+            anisotropyExpressionParsers_[key2]->isValid())
+        {
+            needTij2 = true;
+        }
+    }
+    if (needTij2)
     {
         Tij2_ = symm((Sdim & Odim) - (Odim & Sdim));
     }
@@ -2281,7 +2293,21 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
         }
 
         // Base tensors (dimensionless via tauScale powers)
-        if (useTij2_)
+        // For Tij2, check if needed (coefficients OR symbolic regression)
+        // Note: This check is done once per cell loop, so we check outside the loop for efficiency
+        // But we need to check here too for the cell-by-cell calculation
+        bool needTij2Cell = useTij2_;
+        if (!needTij2Cell && useSymbolicRegression_ && anisotropyCorrection_)
+        {
+            word key2 = name(2);
+            if (anisotropyExpressionParsers_.found(key2) && 
+                anisotropyExpressionParsers_[key2] && 
+                anisotropyExpressionParsers_[key2]->isValid())
+            {
+                needTij2Cell = true;
+            }
+        }
+        if (needTij2Cell)
         {
             Tij2_[CellI] = symm((Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Sdim[CellI]));
         }
@@ -2326,6 +2352,25 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Only include terms for invariants that have non-zero coefficients
     if (separationCorrection_)
     {
+        // Debug: check why symbolic regression might not be used
+        if (debugSymbolicRegression_)
+        {
+            static label checkCounter = 0;
+            checkCounter++;
+            if (checkCounter == 1)
+            {
+                Pout<< "[DEBUG] Separation correction check:" << nl
+                    << "    useSymbolicRegression_: " << useSymbolicRegression_ << nl
+                    << "    separationExpressionParser_ pointer: " 
+                    << (separationExpressionParser_ ? "non-null" : "NULL") << nl;
+                if (separationExpressionParser_)
+                {
+                    Pout<< "    separationExpressionParser_->isValid(): " 
+                        << separationExpressionParser_->isValid() << nl;
+                }
+            }
+        }
+        
         if (useSymbolicRegression_ && separationExpressionParser_ && separationExpressionParser_->isValid())
         {
             // Evaluate symbolic regression expression
@@ -2344,7 +2389,32 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
             separationExpressionParser_->registerFieldVariable("I5", I5_norm);
             
             // Evaluate expression
+            Pout<< "[DEBUG] About to evaluate separation expression..." << nl
+                << "    Expression string: '" << separationExpressionStr_ << "'" << nl
+                << "    Expression length: " << separationExpressionStr_.length() << nl
+                << "    Parser valid: " << separationExpressionParser_->isValid() << endl;
+            
             separationExpressionParser_->evaluateField(alpha_S_);
+            
+            if (debugSymbolicRegression_)
+            {
+                static label evalCounter = 0;
+                evalCounter++;
+                if (evalCounter <= 5)  // Print first 5 times for debugging
+                {
+                    Pout<< "[DEBUG] Using symbolic regression for alpha_S (iteration " << evalCounter << ")" << nl
+                        << "    Expression: " << separationExpressionStr_ << nl
+                        << "    alpha_S min: " << min(alpha_S_).value() << nl
+                        << "    alpha_S max: " << max(alpha_S_).value() << nl
+                        << "    alpha_S mean: " << average(alpha_S_).value() << nl
+                        << "    alpha_S sample values (first 5 cells): ";
+                    for (label i = 0; i < min(5, alpha_S_.size()); ++i)
+                    {
+                        Pout<< alpha_S_[i] << " ";
+                    }
+                    Pout<< endl;
+                }
+            }
         }
         else
         {
@@ -2423,7 +2493,20 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // anisotropyFactor = sum of all active alpha_A_i*Tij_i
     if (anisotropyCorrection_)
     {
-        if (useTij2_)
+        // Check if Tij2 should be used: either coefficients are non-zero OR symbolic regression is enabled
+        bool useTij2Now = useTij2_;
+        if (useSymbolicRegression_)
+        {
+            word key2 = name(2);
+            if (anisotropyExpressionParsers_.found(key2) && 
+                anisotropyExpressionParsers_[key2] && 
+                anisotropyExpressionParsers_[key2]->isValid())
+            {
+                useTij2Now = true;  // Use symbolic regression even if coefficients are zero
+            }
+        }
+        
+        if (useTij2Now)
         {
             word key2 = name(2);  // Convert label to word for HashTable key
             if (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
@@ -2446,7 +2529,32 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
                 parser->registerFieldVariable("I5", I5_norm);
                 
                 // Evaluate expression
+                Pout<< "[DEBUG] About to evaluate Tij2 anisotropy expression..." << nl
+                    << "    Expression string: '" << anisotropyExpressionStrs_[key2] << "'" << nl
+                    << "    Expression length: " << anisotropyExpressionStrs_[key2].length() << nl
+                    << "    Parser valid: " << parser->isValid() << endl;
+                
                 parser->evaluateField(alpha_A_2_);
+                
+                if (debugSymbolicRegression_)
+                {
+                    static label evalCounterTij2 = 0;
+                    evalCounterTij2++;
+                    if (evalCounterTij2 <= 5)  // Print first 5 times for debugging
+                    {
+                        Pout<< "[DEBUG] Using symbolic regression for alpha_A_2 (iteration " << evalCounterTij2 << ")" << nl
+                            << "    Expression: " << anisotropyExpressionStrs_[key2] << nl
+                            << "    alpha_A_2 min: " << min(alpha_A_2_).value() << nl
+                            << "    alpha_A_2 max: " << max(alpha_A_2_).value() << nl
+                            << "    alpha_A_2 mean: " << average(alpha_A_2_).value() << nl
+                            << "    alpha_A_2 sample values (first 5 cells): ";
+                        for (label i = 0; i < min(5, alpha_A_2_.size()); ++i)
+                        {
+                            Pout<< alpha_A_2_[i] << " ";
+                        }
+                        Pout<< endl;
+                    }
+                }
             }
             else
             {
@@ -2558,8 +2666,23 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     }
 
     // Build anisotropyFactor from all active tensors
+    // Check which tensors should be used (either coefficients non-zero OR symbolic regression enabled)
     anisotropyFactor_ = dimensionedSymmTensor("zero", dimless, symmTensor::zero);
-    if (useTij2_) anisotropyFactor_ += alpha_A_2_*Tij2_;
+    
+    // Check Tij2: use if coefficients non-zero OR symbolic regression enabled with valid parser
+    bool useTij2Now = useTij2_;
+    if (useSymbolicRegression_)
+    {
+        word key2 = name(2);
+        if (anisotropyExpressionParsers_.found(key2) && 
+            anisotropyExpressionParsers_[key2] && 
+            anisotropyExpressionParsers_[key2]->isValid())
+        {
+            useTij2Now = true;
+        }
+    }
+    if (useTij2Now) anisotropyFactor_ += alpha_A_2_*Tij2_;
+    
     if (useTij3_) anisotropyFactor_ += alpha_A_3_*Tij3_;
     if (useTij4_) anisotropyFactor_ += alpha_A_4_*Tij4_;
     if (useTij5_) anisotropyFactor_ += alpha_A_5_*Tij5_;
@@ -2569,7 +2692,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     if (useTij9_) anisotropyFactor_ += alpha_A_9_*Tij9_;
     if (useTij10_) anisotropyFactor_ += alpha_A_10_*Tij10_;
     
-    // Debug output for anisotropy factor
+    // Debug output for anisotropy factor and alpha_A statistics
     static label anisotropyDebugCounter = 0;
     if (debugSymbolicRegression_ && anisotropyCorrection_ && (anisotropyDebugCounter++ % 100 == 0))
     {
@@ -2578,7 +2701,21 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
             << "        max trace: " << max(tr(anisotropyFactor_)).value() << nl
             << "        mean trace: " << average(tr(anisotropyFactor_)).value() << nl
             << "        Active tensors: ";
-        if (useTij2_) Info<< "Tij2 ";
+        
+        // Check which tensors are actually being used (including symbolic regression)
+        bool useTij2Now = useTij2_;
+        if (useSymbolicRegression_)
+        {
+            word key2 = name(2);
+            if (anisotropyExpressionParsers_.found(key2) && 
+                anisotropyExpressionParsers_[key2] && 
+                anisotropyExpressionParsers_[key2]->isValid())
+            {
+                useTij2Now = true;
+            }
+        }
+        
+        if (useTij2Now) Info<< "Tij2 ";
         if (useTij3_) Info<< "Tij3 ";
         if (useTij4_) Info<< "Tij4 ";
         if (useTij5_) Info<< "Tij5 ";
@@ -2588,6 +2725,42 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
         if (useTij9_) Info<< "Tij9 ";
         if (useTij10_) Info<< "Tij10 ";
         Info<< endl;
+        
+        // Print alpha_A statistics for active tensors
+        if (useTij2Now)
+        {
+            Info<< "    [Debug] alpha_A_2 statistics:" << nl
+                << "        min: " << min(alpha_A_2_).value() << nl
+                << "        max: " << max(alpha_A_2_).value() << nl
+                << "        mean: " << average(alpha_A_2_).value() << nl
+                << "        sample values (first 5 cells): ";
+            for (label i = 0; i < min(5, alpha_A_2_.size()); ++i)
+            {
+                Info<< alpha_A_2_[i] << " ";
+            }
+            Info<< endl;
+        }
+        if (useTij3_)
+        {
+            Info<< "    [Debug] alpha_A_3 statistics:" << nl
+                << "        min: " << min(alpha_A_3_).value() << nl
+                << "        max: " << max(alpha_A_3_).value() << nl
+                << "        mean: " << average(alpha_A_3_).value() << endl;
+        }
+        if (useTij4_)
+        {
+            Info<< "    [Debug] alpha_A_4 statistics:" << nl
+                << "        min: " << min(alpha_A_4_).value() << nl
+                << "        max: " << max(alpha_A_4_).value() << nl
+                << "        mean: " << average(alpha_A_4_).value() << endl;
+        }
+        if (useTij5_)
+        {
+            Info<< "    [Debug] alpha_A_5 statistics:" << nl
+                << "        min: " << min(alpha_A_5_).value() << nl
+                << "        max: " << max(alpha_A_5_).value() << nl
+                << "        mean: " << average(alpha_A_5_).value() << endl;
+        }
     }
     // Update Reynolds stress tensor
     bijDelta_ = bijDelta_ + ((nut*omega_/(k_ + this->kMin_))*anisotropyFactor_ - bijDelta_)*anisotropyRelaxation_;

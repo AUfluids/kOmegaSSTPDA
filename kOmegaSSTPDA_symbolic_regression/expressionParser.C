@@ -40,6 +40,7 @@ Description
 #include "IOstreams.H"
 #include "dimensionedScalar.H"
 #include "wordList.H"
+#include <cctype>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -155,8 +156,87 @@ bool expressionParser::compileExpression()
         symbolTable_->add_variable(varPair.first, *varPair.second);
     }
     
-    // For field evaluation, we'll register variables dynamically per cell
-    // Store field variable names for later use
+    // Register placeholder variables for field variables that will be set during evaluation
+    // This allows compilation even if variables haven't been registered yet
+    // We'll use a static map to store placeholder values (persists across calls)
+    static std::map<std::string, double> placeholderValues;
+    
+    // Check which variables are referenced in the expression but not yet registered
+    // Common invariant names: I1, I2, I3, I4, I5
+    // Register ALL common variables that appear in the expression as placeholders
+    // This allows compilation even if they haven't been registered as fields yet
+    std::vector<std::string> commonVars = {"I1", "I2", "I3", "I4", "I5"};
+    for (const auto& varName : commonVars)
+    {
+        // Check if variable appears in expression (using word boundary check)
+        // Look for varName as a standalone word (not part of another word like "I10")
+        std::string pattern = varName;
+        // Simple check: look for varName followed by non-alphanumeric or end of string
+        bool foundInExpression = false;
+        size_t pos = 0;
+        while ((pos = expressionStr_.find(varName, pos)) != std::string::npos)
+        {
+            // Check if it's a standalone word
+            bool isStart = (pos == 0) || !std::isalnum(expressionStr_[pos - 1]);
+            bool isEnd = (pos + varName.length() == expressionStr_.length()) ||
+                         !std::isalnum(expressionStr_[pos + varName.length()]);
+            if (isStart && isEnd)
+            {
+                foundInExpression = true;
+                break;
+            }
+            pos += varName.length();
+        }
+        
+        if (foundInExpression)
+        {
+            // Check if not already registered as field or scalar variable
+            bool notRegistered = (fieldVariables_.find(varName) == fieldVariables_.end() &&
+                                  scalarVariables_.find(varName) == scalarVariables_.end());
+            
+            if (notRegistered)
+            {
+                // Initialize placeholder value if needed
+                if (placeholderValues.find(varName) == placeholderValues.end())
+                {
+                    placeholderValues[varName] = 0.0;
+                }
+                // Add to symbol table (ExprTK will use this placeholder during compilation)
+                // The actual values will be set during evaluateField() when fields are registered
+                // Note: ExprTK's add_variable takes a reference, so the value must persist
+                // Using static map ensures the value persists across function calls
+                double& varRef = placeholderValues[varName];
+                symbolTable_->add_variable(varName, varRef);
+            }
+        }
+    }
+    
+    // Also register any field variables that are already registered (for compilation)
+    // These need placeholder values too since we can't use field pointers during compilation
+    for (const auto& fieldPair : fieldVariables_)
+    {
+        // Check if not already added above
+        bool alreadyAdded = false;
+        for (const auto& varName : commonVars)
+        {
+            if (varName == fieldPair.first)
+            {
+                alreadyAdded = true;
+                break;
+            }
+        }
+        
+        if (!alreadyAdded)
+        {
+            // Initialize placeholder value if needed
+            if (placeholderValues.find(fieldPair.first) == placeholderValues.end())
+            {
+                placeholderValues[fieldPair.first] = 0.0;
+            }
+            // Add to symbol table
+            symbolTable_->add_variable(fieldPair.first, placeholderValues[fieldPair.first]);
+        }
+    }
     
     // Set symbol table in expression
     expression_->register_symbol_table(*symbolTable_);
@@ -239,6 +319,17 @@ void expressionParser::evaluateField(volScalarField& result) const
         return;
     }
     
+    // Check if field variables are registered
+    if (fieldVariables_.empty())
+    {
+        WarningInFunction
+            << "No field variables registered. Cannot evaluate expression."
+            << " Make sure to call registerFieldVariable() before evaluateField()."
+            << endl;
+        result = dimensionedScalar("zero", result.dimensions(), 0.0);
+        return;
+    }
+    
     // Create symbol table with variable references for efficient field evaluation
     exprtk::symbol_table<double> cellSymbolTable;
     
@@ -279,6 +370,31 @@ void expressionParser::evaluateField(volScalarField& result) const
     // Evaluate expression for each cell
     const label nCells = result.size();
     
+    // Debug: check if we have field variables registered
+    if (fieldVariables_.empty())
+    {
+        WarningInFunction
+            << "No field variables registered for expression evaluation!" << nl
+            << "Expression: " << expressionStr_ << nl
+            << "Make sure registerFieldVariable() is called before evaluateField()." << endl;
+        result = dimensionedScalar("zero", result.dimensions(), 0.0);
+        return;
+    }
+    
+    // Debug: print first evaluation for verification
+    static label evalCallCount = 0;
+    evalCallCount++;
+    if (evalCallCount == 1)
+    {
+        Info<< "[EXPRESSION_PARSER] Evaluating expression: " << expressionStr_ << nl
+            << "    Registered field variables: ";
+        for (const auto& fieldPair : fieldVariables_)
+        {
+            Info<< fieldPair.first << " ";
+        }
+        Info<< nl << "    Number of cells: " << nCells << endl;
+    }
+    
     for (label cellI = 0; cellI < nCells; ++cellI)
     {
         // Update field variable values for this cell
@@ -290,10 +406,34 @@ void expressionParser::evaluateField(volScalarField& result) const
                 // Update value through pointer - ExprTK sees this immediately
                 *(fieldVarPtrs[fieldPair.first]) = (*field)[cellI];
             }
+            else
+            {
+                // Set to zero if field is invalid or cell index out of range
+                if (fieldVarPtrs.find(fieldPair.first) != fieldVarPtrs.end())
+                {
+                    *(fieldVarPtrs[fieldPair.first]) = 0.0;
+                }
+            }
         }
         
         // Evaluate expression for this cell
         result[cellI] = cellExpression.value();
+        
+        // Debug: print first cell evaluation
+        if (evalCallCount == 1 && cellI == 0)
+        {
+            Info<< "[EXPRESSION_PARSER] First cell evaluation:" << nl
+                << "    Cell 0 result: " << result[cellI] << nl
+                << "    Variable values: ";
+            for (const auto& fieldPair : fieldVariables_)
+            {
+                if (fieldVarPtrs.find(fieldPair.first) != fieldVarPtrs.end())
+                {
+                    Info<< fieldPair.first << "=" << *(fieldVarPtrs[fieldPair.first]) << " ";
+                }
+            }
+            Info<< endl;
+        }
     }
     
     // Correct boundary conditions
@@ -310,6 +450,21 @@ void expressionParser::evaluateField(volScalarField& result) const
 void expressionParser::read(const dictionary& dict)
 {
     expressionStr_ = dict.lookupOrDefault<string>("expression", "");
+    
+    // Remove any trailing quotes, semicolons, or whitespace from expression string
+    // This handles cases where the dictionary might have trailing characters
+    while (!expressionStr_.empty() && 
+           (expressionStr_.back() == '"' || expressionStr_.back() == '\'' || 
+            expressionStr_.back() == ';' || expressionStr_.back() == ' ' || 
+            expressionStr_.back() == '\t'))
+    {
+        expressionStr_.pop_back();
+    }
+    // Also remove leading quotes if present
+    if (!expressionStr_.empty() && (expressionStr_[0] == '"' || expressionStr_[0] == '\''))
+    {
+        expressionStr_ = expressionStr_.substr(1);
+    }
     
     // Read normalization constants from variables sub-dictionary
     if (dict.found("variables"))

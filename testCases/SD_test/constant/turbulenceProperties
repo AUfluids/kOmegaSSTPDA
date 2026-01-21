@@ -67,7 +67,8 @@ RAS
         // ============================================================
         // SEPARATION CORRECTION (fallback if symbolic regression disabled)
         // ============================================================
-        separationCorrection      false;
+        // NOTE: Must be true for symbolic regression expressions to be evaluated!
+        separationCorrection      true;
         lambda1                  18.622;
         lambda2                  4.698;
         C0                       0.0;  // Used if symbolic regression disabled
