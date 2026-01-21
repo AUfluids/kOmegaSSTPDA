@@ -2219,53 +2219,71 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     }
 
     // Calculate base tensors (dimensionless using Sdim/Odim) - only if coefficients are present OR symbolic regression enabled
-    // For Tij2, also check if symbolic regression is enabled
-    bool needTij2 = useTij2_;
-    if (useSymbolicRegression_ && anisotropyCorrection_)
+    // Loop through all tensors (2-10) and check if they should be calculated
+    for (label i = 2; i <= 10; ++i)
     {
-        word key2 = name(2);
-        if (anisotropyExpressionParsers_.found(key2) && 
-            anisotropyExpressionParsers_[key2] && 
-            anisotropyExpressionParsers_[key2]->isValid())
+        bool needTij = false;
+        
+        // Check if coefficients are non-zero
+        switch(i)
         {
-            needTij2 = true;
+            case 2: needTij = useTij2_; break;
+            case 3: needTij = useTij3_; break;
+            case 4: needTij = useTij4_; break;
+            case 5: needTij = useTij5_; break;
+            case 6: needTij = useTij6_; break;
+            case 7: needTij = useTij7_; break;
+            case 8: needTij = useTij8_; break;
+            case 9: needTij = useTij9_; break;
+            case 10: needTij = useTij10_; break;
         }
-    }
-    if (needTij2)
-    {
-        Tij2_ = symm((Sdim & Odim) - (Odim & Sdim));
-    }
-    if (useTij3_)
-    {
-        Tij3_ = symm(Sdim & Sdim - (scalar(1.0)/3.0)*tr(Sdim & Sdim)*tensor::I);
-    }
-    if (useTij4_)
-    {
-        Tij4_ = symm(Odim & Odim - (scalar(1.0)/3.0)*tr(Odim & Odim)*tensor::I);
-    }
-    if (useTij5_)
-    {
-        Tij5_ = symm((Odim & Sdim & Sdim) - (Sdim & Sdim & Odim));
-    }
-    if (useTij6_)
-    {
-        Tij6_ = symm((Odim & Odim & Sdim) + (Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Odim & Odim)*tensor::I);
-    }
-    if (useTij7_)
-    {
-        Tij7_ = symm((Odim & Sdim & Odim & Odim) - (Odim & Odim & Sdim & Odim));
-    }
-    if (useTij8_)
-    {
-        Tij8_ = symm((Odim & Sdim & Sdim & Sdim) - (Sdim & Sdim & Odim & Sdim));
-    }
-    if (useTij9_)
-    {
-        Tij9_ = symm((Odim & Odim & Sdim & Sdim) + (Sdim & Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Sdim & Odim & Odim)*tensor::I);
-    }
-    if (useTij10_)
-    {
-        Tij10_ = symm((Odim & Sdim & Sdim & Sdim & Odim) - (Odim & Odim & Sdim & Sdim & Odim));
+        
+        // Also check if symbolic regression is enabled for this tensor
+        if (!needTij && useSymbolicRegression_ && anisotropyCorrection_)
+        {
+            word key = name(i);
+            if (anisotropyExpressionParsers_.found(key) && 
+                anisotropyExpressionParsers_[key] && 
+                anisotropyExpressionParsers_[key]->isValid())
+            {
+                needTij = true;
+            }
+        }
+        
+        // Calculate tensor if needed
+        if (needTij)
+        {
+            switch(i)
+            {
+                case 2:
+                    Tij2_ = symm((Sdim & Odim) - (Odim & Sdim));
+                    break;
+                case 3:
+                    Tij3_ = symm(Sdim & Sdim - (scalar(1.0)/3.0)*tr(Sdim & Sdim)*tensor::I);
+                    break;
+                case 4:
+                    Tij4_ = symm(Odim & Odim - (scalar(1.0)/3.0)*tr(Odim & Odim)*tensor::I);
+                    break;
+                case 5:
+                    Tij5_ = symm((Odim & Sdim & Sdim) - (Sdim & Sdim & Odim));
+                    break;
+                case 6:
+                    Tij6_ = symm((Odim & Odim & Sdim) + (Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Odim & Odim)*tensor::I);
+                    break;
+                case 7:
+                    Tij7_ = symm((Odim & Sdim & Odim & Odim) - (Odim & Odim & Sdim & Odim));
+                    break;
+                case 8:
+                    Tij8_ = symm((Odim & Sdim & Sdim & Sdim) - (Sdim & Sdim & Odim & Sdim));
+                    break;
+                case 9:
+                    Tij9_ = symm((Odim & Odim & Sdim & Sdim) + (Sdim & Sdim & Odim & Odim) - (scalar(2.0)/3.0)*tr(Sdim & Sdim & Odim & Odim)*tensor::I);
+                    break;
+                case 10:
+                    Tij10_ = symm((Odim & Sdim & Sdim & Sdim & Odim) - (Odim & Odim & Sdim & Sdim & Odim));
+                    break;
+            }
+        }
     }
 
     // Calculate invariants and base tensors cell by cell (only for active fields)
@@ -2293,55 +2311,71 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
         }
 
         // Base tensors (dimensionless via tauScale powers)
-        // For Tij2, check if needed (coefficients OR symbolic regression)
-        // Note: This check is done once per cell loop, so we check outside the loop for efficiency
-        // But we need to check here too for the cell-by-cell calculation
-        bool needTij2Cell = useTij2_;
-        if (!needTij2Cell && useSymbolicRegression_ && anisotropyCorrection_)
+        // Loop through all tensors (2-10) and check if they should be calculated
+        for (label i = 2; i <= 10; ++i)
         {
-            word key2 = name(2);
-            if (anisotropyExpressionParsers_.found(key2) && 
-                anisotropyExpressionParsers_[key2] && 
-                anisotropyExpressionParsers_[key2]->isValid())
+            bool needTijCell = false;
+            
+            // Check if coefficients are non-zero
+            switch(i)
             {
-                needTij2Cell = true;
+                case 2: needTijCell = useTij2_; break;
+                case 3: needTijCell = useTij3_; break;
+                case 4: needTijCell = useTij4_; break;
+                case 5: needTijCell = useTij5_; break;
+                case 6: needTijCell = useTij6_; break;
+                case 7: needTijCell = useTij7_; break;
+                case 8: needTijCell = useTij8_; break;
+                case 9: needTijCell = useTij9_; break;
+                case 10: needTijCell = useTij10_; break;
             }
-        }
-        if (needTij2Cell)
-        {
-            Tij2_[CellI] = symm((Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Sdim[CellI]));
-        }
-        if (useTij3_)
-        {
-            Tij3_[CellI] = symm(Sdim[CellI] & Sdim[CellI] - (scalar(1.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI])*tensor::I);
-        }
-        if (useTij4_)
-        {
-            Tij4_[CellI] = symm(Odim[CellI] & Odim[CellI] - (scalar(1.0)/3.0)*tr(Odim[CellI] & Odim[CellI])*tensor::I);
-        }
-        if (useTij5_)
-        {
-            Tij5_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
-        }
-        if (useTij6_)
-        {
-            Tij6_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
-        }
-        if (useTij7_)
-        {
-            Tij7_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Odim[CellI]));
-        }
-        if (useTij8_)
-        {
-            Tij8_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Sdim[CellI]));
-        }
-        if (useTij9_)
-        {
-            Tij9_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
-        }
-        if (useTij10_)
-        {
-            Tij10_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
+            
+            // Also check if symbolic regression is enabled for this tensor
+            if (!needTijCell && useSymbolicRegression_ && anisotropyCorrection_)
+            {
+                word key = name(i);
+                if (anisotropyExpressionParsers_.found(key) && 
+                    anisotropyExpressionParsers_[key] && 
+                    anisotropyExpressionParsers_[key]->isValid())
+                {
+                    needTijCell = true;
+                }
+            }
+            
+            // Calculate tensor if needed
+            if (needTijCell)
+            {
+                switch(i)
+                {
+                    case 2:
+                        Tij2_[CellI] = symm((Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Sdim[CellI]));
+                        break;
+                    case 3:
+                        Tij3_[CellI] = symm(Sdim[CellI] & Sdim[CellI] - (scalar(1.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI])*tensor::I);
+                        break;
+                    case 4:
+                        Tij4_[CellI] = symm(Odim[CellI] & Odim[CellI] - (scalar(1.0)/3.0)*tr(Odim[CellI] & Odim[CellI])*tensor::I);
+                        break;
+                    case 5:
+                        Tij5_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
+                        break;
+                    case 6:
+                        Tij6_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
+                        break;
+                    case 7:
+                        Tij7_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Odim[CellI]));
+                        break;
+                    case 8:
+                        Tij8_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI]) - (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Sdim[CellI]));
+                        break;
+                    case 9:
+                        Tij9_[CellI] = symm((Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI]) + (Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI]) - (scalar(2.0)/3.0)*tr(Sdim[CellI] & Sdim[CellI] & Odim[CellI] & Odim[CellI])*tensor::I);
+                        break;
+                    case 10:
+                        Tij10_[CellI] = symm((Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]) - (Odim[CellI] & Odim[CellI] & Sdim[CellI] & Sdim[CellI] & Odim[CellI]));
+                        break;
+                }
+            }
         }
     }
 
@@ -2493,175 +2527,208 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // anisotropyFactor = sum of all active alpha_A_i*Tij_i
     if (anisotropyCorrection_)
     {
-        // Check if Tij2 should be used: either coefficients are non-zero OR symbolic regression is enabled
-        bool useTij2Now = useTij2_;
-        if (useSymbolicRegression_)
-        {
-            word key2 = name(2);
-            if (anisotropyExpressionParsers_.found(key2) && 
-                anisotropyExpressionParsers_[key2] && 
-                anisotropyExpressionParsers_[key2]->isValid())
-            {
-                useTij2Now = true;  // Use symbolic regression even if coefficients are zero
-            }
-        }
+        // Create normalized invariant fields once (used by all tensors)
+        volScalarField I1_norm((I1_ - I1_mean_anisotropy)/I1_std_anisotropy);
+        volScalarField I2_norm((I2_ - I2_mean_anisotropy)/I2_std_anisotropy);
+        volScalarField I3_norm((I3_ - I3_mean_anisotropy)/I3_std_anisotropy);
+        volScalarField I4_norm((I4_ - I4_mean_anisotropy)/I4_std_anisotropy);
+        volScalarField I5_norm((I5_ - I5_mean_anisotropy)/I5_std_anisotropy);
         
-        if (useTij2Now)
+        // Loop through all tensors (2-10) and evaluate alpha_A_i
+        for (label i = 2; i <= 10; ++i)
         {
-            word key2 = name(2);  // Convert label to word for HashTable key
-            if (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
-                && anisotropyExpressionParsers_[key2] && anisotropyExpressionParsers_[key2]->isValid())
+            // Check if this tensor should be used: either coefficients are non-zero OR symbolic regression is enabled
+            bool useTijNow = false;
+            
+            // Check if coefficients are non-zero
+            switch(i)
             {
-                // Evaluate symbolic regression expression
-                // Create normalized invariant fields
-                volScalarField I1_norm((I1_ - I1_mean_anisotropy)/I1_std_anisotropy);
-                volScalarField I2_norm((I2_ - I2_mean_anisotropy)/I2_std_anisotropy);
-                volScalarField I3_norm((I3_ - I3_mean_anisotropy)/I3_std_anisotropy);
-                volScalarField I4_norm((I4_ - I4_mean_anisotropy)/I4_std_anisotropy);
-                volScalarField I5_norm((I5_ - I5_mean_anisotropy)/I5_std_anisotropy);
-                
-                // Register field variables
-                expressionParser* parser = anisotropyExpressionParsers_[key2];
-                parser->registerFieldVariable("I1", I1_norm);
-                parser->registerFieldVariable("I2", I2_norm);
-                parser->registerFieldVariable("I3", I3_norm);
-                parser->registerFieldVariable("I4", I4_norm);
-                parser->registerFieldVariable("I5", I5_norm);
-                
-                // Evaluate expression
-                Pout<< "[DEBUG] About to evaluate Tij2 anisotropy expression..." << nl
-                    << "    Expression string: '" << anisotropyExpressionStrs_[key2] << "'" << nl
-                    << "    Expression length: " << anisotropyExpressionStrs_[key2].length() << nl
-                    << "    Parser valid: " << parser->isValid() << endl;
-                
-                parser->evaluateField(alpha_A_2_);
-                
-                if (debugSymbolicRegression_)
+                case 2: useTijNow = useTij2_; break;
+                case 3: useTijNow = useTij3_; break;
+                case 4: useTijNow = useTij4_; break;
+                case 5: useTijNow = useTij5_; break;
+                case 6: useTijNow = useTij6_; break;
+                case 7: useTijNow = useTij7_; break;
+                case 8: useTijNow = useTij8_; break;
+                case 9: useTijNow = useTij9_; break;
+                case 10: useTijNow = useTij10_; break;
+            }
+            
+            // Also check if symbolic regression is enabled for this tensor
+            if (!useTijNow && useSymbolicRegression_)
+            {
+                word key = name(i);
+                if (anisotropyExpressionParsers_.found(key) && 
+                    anisotropyExpressionParsers_[key] && 
+                    anisotropyExpressionParsers_[key]->isValid())
                 {
-                    static label evalCounterTij2 = 0;
-                    evalCounterTij2++;
-                    if (evalCounterTij2 <= 5)  // Print first 5 times for debugging
+                    useTijNow = true;  // Use symbolic regression even if coefficients are zero
+                }
+            }
+            
+            // Evaluate alpha_A_i if tensor is active
+            if (useTijNow)
+            {
+                word key = name(i);  // Convert label to word for HashTable key
+                
+                // Check if symbolic regression expression is available and valid
+                if (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key) 
+                    && anisotropyExpressionParsers_[key] && anisotropyExpressionParsers_[key]->isValid())
+                {
+                    // Evaluate symbolic regression expression
+                    expressionParser* parser = anisotropyExpressionParsers_[key];
+                    
+                    // Register field variables
+                    parser->registerFieldVariable("I1", I1_norm);
+                    parser->registerFieldVariable("I2", I2_norm);
+                    parser->registerFieldVariable("I3", I3_norm);
+                    parser->registerFieldVariable("I4", I4_norm);
+                    parser->registerFieldVariable("I5", I5_norm);
+                    
+                    // Evaluate expression into the appropriate alpha_A field
+                    Pout<< "[DEBUG] About to evaluate Tij" << i << " anisotropy expression..." << nl
+                        << "    Expression string: '" << anisotropyExpressionStrs_[key] << "'" << nl
+                        << "    Expression length: " << anisotropyExpressionStrs_[key].length() << nl
+                        << "    Parser valid: " << parser->isValid() << endl;
+                    
+                    // Evaluate into the correct alpha_A field based on tensor index
+                    switch(i)
                     {
-                        Pout<< "[DEBUG] Using symbolic regression for alpha_A_2 (iteration " << evalCounterTij2 << ")" << nl
-                            << "    Expression: " << anisotropyExpressionStrs_[key2] << nl
-                            << "    alpha_A_2 min: " << min(alpha_A_2_).value() << nl
-                            << "    alpha_A_2 max: " << max(alpha_A_2_).value() << nl
-                            << "    alpha_A_2 mean: " << average(alpha_A_2_).value() << nl
-                            << "    alpha_A_2 sample values (first 5 cells): ";
-                        for (label i = 0; i < min(5, alpha_A_2_.size()); ++i)
-                        {
-                            Pout<< alpha_A_2_[i] << " ";
-                        }
-                        Pout<< endl;
+                        case 2:
+                            parser->evaluateField(alpha_A_2_);
+                            if (debugSymbolicRegression_)
+                            {
+                                static label evalCounterTij2 = 0;
+                                evalCounterTij2++;
+                                if (evalCounterTij2 <= 5)
+                                {
+                                    Pout<< "[DEBUG] Using symbolic regression for alpha_A_2 (iteration " << evalCounterTij2 << ")" << nl
+                                        << "    Expression: " << anisotropyExpressionStrs_[key] << nl
+                                        << "    alpha_A_2 min: " << min(alpha_A_2_).value() << nl
+                                        << "    alpha_A_2 max: " << max(alpha_A_2_).value() << nl
+                                        << "    alpha_A_2 mean: " << average(alpha_A_2_).value() << endl;
+                                }
+                            }
+                            break;
+                        case 3:
+                            parser->evaluateField(alpha_A_3_);
+                            if (debugSymbolicRegression_)
+                            {
+                                static label evalCounterTij3 = 0;
+                                evalCounterTij3++;
+                                if (evalCounterTij3 <= 5)
+                                {
+                                    Pout<< "[DEBUG] Using symbolic regression for alpha_A_3 (iteration " << evalCounterTij3 << ")" << nl
+                                        << "    Expression: " << anisotropyExpressionStrs_[key] << nl
+                                        << "    alpha_A_3 min: " << min(alpha_A_3_).value() << nl
+                                        << "    alpha_A_3 max: " << max(alpha_A_3_).value() << nl
+                                        << "    alpha_A_3 mean: " << average(alpha_A_3_).value() << endl;
+                                }
+                            }
+                            break;
+                        case 4:
+                            parser->evaluateField(alpha_A_4_);
+                            break;
+                        case 5:
+                            parser->evaluateField(alpha_A_5_);
+                            break;
+                        case 6:
+                            parser->evaluateField(alpha_A_6_);
+                            break;
+                        case 7:
+                            parser->evaluateField(alpha_A_7_);
+                            break;
+                        case 8:
+                            parser->evaluateField(alpha_A_8_);
+                            break;
+                        case 9:
+                            parser->evaluateField(alpha_A_9_);
+                            break;
+                        case 10:
+                            parser->evaluateField(alpha_A_10_);
+                            break;
+                    }
+                }
+                else
+                {
+                    // Fall back to hardcoded calculation
+                    switch(i)
+                    {
+                        case 2:
+                            alpha_A_2_ = A0_2_;
+                            if (useI1_) alpha_A_2_ += A1_2_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_2_ += A2_2_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_2_ += A3_2_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_2_ += A4_2_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_2_ += A5_2_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 3:
+                            alpha_A_3_ = A0_3_;
+                            if (useI1_) alpha_A_3_ += A1_3_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_3_ += A2_3_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_3_ += A3_3_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_3_ += A4_3_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_3_ += A5_3_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 4:
+                            alpha_A_4_ = A0_4_;
+                            if (useI1_) alpha_A_4_ += A1_4_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_4_ += A2_4_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_4_ += A3_4_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_4_ += A4_4_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_4_ += A5_4_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 5:
+                            alpha_A_5_ = A0_5_;
+                            if (useI1_) alpha_A_5_ += A1_5_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_5_ += A2_5_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_5_ += A3_5_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_5_ += A4_5_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_5_ += A5_5_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 6:
+                            alpha_A_6_ = A0_6_;
+                            if (useI1_) alpha_A_6_ += A1_6_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_6_ += A2_6_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_6_ += A3_6_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_6_ += A4_6_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_6_ += A5_6_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 7:
+                            alpha_A_7_ = A0_7_;
+                            if (useI1_) alpha_A_7_ += A1_7_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_7_ += A2_7_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_7_ += A3_7_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_7_ += A4_7_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_7_ += A5_7_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 8:
+                            alpha_A_8_ = A0_8_;
+                            if (useI1_) alpha_A_8_ += A1_8_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_8_ += A2_8_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_8_ += A3_8_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_8_ += A4_8_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_8_ += A5_8_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 9:
+                            alpha_A_9_ = A0_9_;
+                            if (useI1_) alpha_A_9_ += A1_9_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_9_ += A2_9_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_9_ += A3_9_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_9_ += A4_9_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_9_ += A5_9_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
+                        case 10:
+                            alpha_A_10_ = A0_10_;
+                            if (useI1_) alpha_A_10_ += A1_10_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
+                            if (useI2_) alpha_A_10_ += A2_10_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
+                            if (useI3_) alpha_A_10_ += A3_10_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
+                            if (useI4_) alpha_A_10_ += A4_10_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
+                            if (useI5_) alpha_A_10_ += A5_10_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
+                            break;
                     }
                 }
             }
-            else
-            {
-                // Fall back to hardcoded calculation
-                alpha_A_2_ = A0_2_;
-                if (useI1_) alpha_A_2_ += A1_2_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-                if (useI2_) alpha_A_2_ += A2_2_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-                if (useI3_) alpha_A_2_ += A3_2_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-                if (useI4_) alpha_A_2_ += A4_2_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-                if (useI5_) alpha_A_2_ += A5_2_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-            }
-            
-            static label debugCounterTij2 = 0;
-            debugCounterTij2++;
-            if (debugSymbolicRegression_ && (debugCounterTij2 % 100 == 0))
-            {
-                Pout<< nl << "========================================" << nl
-                    << "[DEBUG] Symbolic Regression - Tij2" << nl
-                    << "========================================" << nl
-                    << "    Iteration: " << debugCounterTij2 << nl
-                    << "    alpha_A_2 statistics:" << nl
-                    << "        min: " << min(alpha_A_2_).value() << nl
-                    << "        max: " << max(alpha_A_2_).value() << nl
-                    << "        mean: " << average(alpha_A_2_).value() << nl
-                    << "        method: " 
-                    << (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
-                        && anisotropyExpressionParsers_[key2] && anisotropyExpressionParsers_[key2]->isValid()
-                        ? "symbolic regression" : "hardcoded coefficients") << nl;
-                if (useSymbolicRegression_ && anisotropyExpressionParsers_.found(key2) 
-                    && anisotropyExpressionParsers_[key2] && anisotropyExpressionParsers_[key2]->isValid())
-                {
-                    Pout<< "        expression: " << anisotropyExpressionStrs_[key2] << nl;
-                }
-                Pout<< "========================================" << nl << endl;
-            }
-        }
-        if (useTij3_)
-        {
-            alpha_A_3_ = A0_3_;
-            if (useI1_) alpha_A_3_ += A1_3_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_3_ += A2_3_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_3_ += A3_3_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_3_ += A4_3_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_3_ += A5_3_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij4_)
-        {
-            alpha_A_4_ = A0_4_;
-            if (useI1_) alpha_A_4_ += A1_4_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_4_ += A2_4_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_4_ += A3_4_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_4_ += A4_4_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_4_ += A5_4_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij5_)
-        {
-            alpha_A_5_ = A0_5_;
-            if (useI1_) alpha_A_5_ += A1_5_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_5_ += A2_5_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_5_ += A3_5_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_5_ += A4_5_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_5_ += A5_5_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij6_)
-        {
-            alpha_A_6_ = A0_6_;
-            if (useI1_) alpha_A_6_ += A1_6_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_6_ += A2_6_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_6_ += A3_6_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_6_ += A4_6_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_6_ += A5_6_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij7_)
-        {
-            alpha_A_7_ = A0_7_;
-            if (useI1_) alpha_A_7_ += A1_7_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_7_ += A2_7_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_7_ += A3_7_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_7_ += A4_7_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_7_ += A5_7_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij8_)
-        {
-            alpha_A_8_ = A0_8_;
-            if (useI1_) alpha_A_8_ += A1_8_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_8_ += A2_8_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_8_ += A3_8_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_8_ += A4_8_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_8_ += A5_8_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij9_)
-        {
-            alpha_A_9_ = A0_9_;
-            if (useI1_) alpha_A_9_ += A1_9_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_9_ += A2_9_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_9_ += A3_9_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_9_ += A4_9_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_9_ += A5_9_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
-        }
-        if (useTij10_)
-        {
-            alpha_A_10_ = A0_10_;
-            if (useI1_) alpha_A_10_ += A1_10_*(I1_ - I1_mean_anisotropy.value())/I1_std_anisotropy.value();
-            if (useI2_) alpha_A_10_ += A2_10_*(I2_ - I2_mean_anisotropy.value())/I2_std_anisotropy.value();
-            if (useI3_) alpha_A_10_ += A3_10_*(I3_ - I3_mean_anisotropy.value())/I3_std_anisotropy.value();
-            if (useI4_) alpha_A_10_ += A4_10_*(I4_ - I4_mean_anisotropy.value())/I4_std_anisotropy.value();
-            if (useI5_) alpha_A_10_ += A5_10_*(I5_ - I5_mean_anisotropy.value())/I5_std_anisotropy.value();
         }
     }
 
@@ -2669,28 +2736,54 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Check which tensors should be used (either coefficients non-zero OR symbolic regression enabled)
     anisotropyFactor_ = dimensionedSymmTensor("zero", dimless, symmTensor::zero);
     
-    // Check Tij2: use if coefficients non-zero OR symbolic regression enabled with valid parser
-    bool useTij2Now = useTij2_;
-    if (useSymbolicRegression_)
+    // Loop through all tensors (2-10) and add to anisotropyFactor if active
+    for (label i = 2; i <= 10; ++i)
     {
-        word key2 = name(2);
-        if (anisotropyExpressionParsers_.found(key2) && 
-            anisotropyExpressionParsers_[key2] && 
-            anisotropyExpressionParsers_[key2]->isValid())
+        bool useTijNow = false;
+        
+        // Check if coefficients are non-zero
+        switch(i)
         {
-            useTij2Now = true;
+            case 2: useTijNow = useTij2_; break;
+            case 3: useTijNow = useTij3_; break;
+            case 4: useTijNow = useTij4_; break;
+            case 5: useTijNow = useTij5_; break;
+            case 6: useTijNow = useTij6_; break;
+            case 7: useTijNow = useTij7_; break;
+            case 8: useTijNow = useTij8_; break;
+            case 9: useTijNow = useTij9_; break;
+            case 10: useTijNow = useTij10_; break;
+        }
+        
+        // Also check if symbolic regression is enabled for this tensor
+        if (!useTijNow && useSymbolicRegression_ && anisotropyCorrection_)
+        {
+            word key = name(i);
+            if (anisotropyExpressionParsers_.found(key) && 
+                anisotropyExpressionParsers_[key] && 
+                anisotropyExpressionParsers_[key]->isValid())
+            {
+                useTijNow = true;
+            }
+        }
+        
+        // Add tensor contribution to anisotropyFactor if active
+        if (useTijNow)
+        {
+            switch(i)
+            {
+                case 2: anisotropyFactor_ += alpha_A_2_*Tij2_; break;
+                case 3: anisotropyFactor_ += alpha_A_3_*Tij3_; break;
+                case 4: anisotropyFactor_ += alpha_A_4_*Tij4_; break;
+                case 5: anisotropyFactor_ += alpha_A_5_*Tij5_; break;
+                case 6: anisotropyFactor_ += alpha_A_6_*Tij6_; break;
+                case 7: anisotropyFactor_ += alpha_A_7_*Tij7_; break;
+                case 8: anisotropyFactor_ += alpha_A_8_*Tij8_; break;
+                case 9: anisotropyFactor_ += alpha_A_9_*Tij9_; break;
+                case 10: anisotropyFactor_ += alpha_A_10_*Tij10_; break;
+            }
         }
     }
-    if (useTij2Now) anisotropyFactor_ += alpha_A_2_*Tij2_;
-    
-    if (useTij3_) anisotropyFactor_ += alpha_A_3_*Tij3_;
-    if (useTij4_) anisotropyFactor_ += alpha_A_4_*Tij4_;
-    if (useTij5_) anisotropyFactor_ += alpha_A_5_*Tij5_;
-    if (useTij6_) anisotropyFactor_ += alpha_A_6_*Tij6_;
-    if (useTij7_) anisotropyFactor_ += alpha_A_7_*Tij7_;
-    if (useTij8_) anisotropyFactor_ += alpha_A_8_*Tij8_;
-    if (useTij9_) anisotropyFactor_ += alpha_A_9_*Tij9_;
-    if (useTij10_) anisotropyFactor_ += alpha_A_10_*Tij10_;
     
     // Debug output for anisotropy factor and alpha_A statistics
     static label anisotropyDebugCounter = 0;
@@ -2703,63 +2796,144 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
             << "        Active tensors: ";
         
         // Check which tensors are actually being used (including symbolic regression)
-        bool useTij2Now = useTij2_;
-        if (useSymbolicRegression_)
+        // Loop through all tensors (2-10) and check if they're active
+        for (label i = 2; i <= 10; ++i)
         {
-            word key2 = name(2);
-            if (anisotropyExpressionParsers_.found(key2) && 
-                anisotropyExpressionParsers_[key2] && 
-                anisotropyExpressionParsers_[key2]->isValid())
+            bool useTijNow = false;
+            
+            // Check if coefficients are non-zero
+            switch(i)
             {
-                useTij2Now = true;
+                case 2: useTijNow = useTij2_; break;
+                case 3: useTijNow = useTij3_; break;
+                case 4: useTijNow = useTij4_; break;
+                case 5: useTijNow = useTij5_; break;
+                case 6: useTijNow = useTij6_; break;
+                case 7: useTijNow = useTij7_; break;
+                case 8: useTijNow = useTij8_; break;
+                case 9: useTijNow = useTij9_; break;
+                case 10: useTijNow = useTij10_; break;
+            }
+            
+            // Also check if symbolic regression is enabled for this tensor
+            if (!useTijNow && useSymbolicRegression_)
+            {
+                word key = name(i);
+                if (anisotropyExpressionParsers_.found(key) && 
+                    anisotropyExpressionParsers_[key] && 
+                    anisotropyExpressionParsers_[key]->isValid())
+                {
+                    useTijNow = true;
+                }
+            }
+            
+            // Print tensor name if active
+            if (useTijNow)
+            {
+                Info<< "Tij" << i << " ";
             }
         }
-        
-        if (useTij2Now) Info<< "Tij2 ";
-        if (useTij3_) Info<< "Tij3 ";
-        if (useTij4_) Info<< "Tij4 ";
-        if (useTij5_) Info<< "Tij5 ";
-        if (useTij6_) Info<< "Tij6 ";
-        if (useTij7_) Info<< "Tij7 ";
-        if (useTij8_) Info<< "Tij8 ";
-        if (useTij9_) Info<< "Tij9 ";
-        if (useTij10_) Info<< "Tij10 ";
         Info<< endl;
         
         // Print alpha_A statistics for active tensors
-        if (useTij2Now)
+        // Loop through all tensors (2-10) and print statistics if active
+        for (label i = 2; i <= 10; ++i)
         {
-            Info<< "    [Debug] alpha_A_2 statistics:" << nl
-                << "        min: " << min(alpha_A_2_).value() << nl
-                << "        max: " << max(alpha_A_2_).value() << nl
-                << "        mean: " << average(alpha_A_2_).value() << nl
-                << "        sample values (first 5 cells): ";
-            for (label i = 0; i < min(5, alpha_A_2_.size()); ++i)
+            bool useTijNow = false;
+            
+            // Check if coefficients are non-zero
+            switch(i)
             {
-                Info<< alpha_A_2_[i] << " ";
+                case 2: useTijNow = useTij2_; break;
+                case 3: useTijNow = useTij3_; break;
+                case 4: useTijNow = useTij4_; break;
+                case 5: useTijNow = useTij5_; break;
+                case 6: useTijNow = useTij6_; break;
+                case 7: useTijNow = useTij7_; break;
+                case 8: useTijNow = useTij8_; break;
+                case 9: useTijNow = useTij9_; break;
+                case 10: useTijNow = useTij10_; break;
             }
-            Info<< endl;
-        }
-        if (useTij3_)
-        {
-            Info<< "    [Debug] alpha_A_3 statistics:" << nl
-                << "        min: " << min(alpha_A_3_).value() << nl
-                << "        max: " << max(alpha_A_3_).value() << nl
-                << "        mean: " << average(alpha_A_3_).value() << endl;
-        }
-        if (useTij4_)
-        {
-            Info<< "    [Debug] alpha_A_4 statistics:" << nl
-                << "        min: " << min(alpha_A_4_).value() << nl
-                << "        max: " << max(alpha_A_4_).value() << nl
-                << "        mean: " << average(alpha_A_4_).value() << endl;
-        }
-        if (useTij5_)
-        {
-            Info<< "    [Debug] alpha_A_5 statistics:" << nl
-                << "        min: " << min(alpha_A_5_).value() << nl
-                << "        max: " << max(alpha_A_5_).value() << nl
-                << "        mean: " << average(alpha_A_5_).value() << endl;
+            
+            // Also check if symbolic regression is enabled for this tensor
+            if (!useTijNow && useSymbolicRegression_)
+            {
+                word key = name(i);
+                if (anisotropyExpressionParsers_.found(key) && 
+                    anisotropyExpressionParsers_[key] && 
+                    anisotropyExpressionParsers_[key]->isValid())
+                {
+                    useTijNow = true;
+                }
+            }
+            
+            // Print statistics if tensor is active
+            if (useTijNow)
+            {
+                switch(i)
+                {
+                    case 2:
+                        Info<< "    [Debug] alpha_A_2 statistics:" << nl
+                            << "        min: " << min(alpha_A_2_).value() << nl
+                            << "        max: " << max(alpha_A_2_).value() << nl
+                            << "        mean: " << average(alpha_A_2_).value() << nl
+                            << "        sample values (first 5 cells): ";
+                        for (label j = 0; j < min(5, alpha_A_2_.size()); ++j)
+                        {
+                            Info<< alpha_A_2_[j] << " ";
+                        }
+                        Info<< endl;
+                        break;
+                    case 3:
+                        Info<< "    [Debug] alpha_A_3 statistics:" << nl
+                            << "        min: " << min(alpha_A_3_).value() << nl
+                            << "        max: " << max(alpha_A_3_).value() << nl
+                            << "        mean: " << average(alpha_A_3_).value() << endl;
+                        break;
+                    case 4:
+                        Info<< "    [Debug] alpha_A_4 statistics:" << nl
+                            << "        min: " << min(alpha_A_4_).value() << nl
+                            << "        max: " << max(alpha_A_4_).value() << nl
+                            << "        mean: " << average(alpha_A_4_).value() << endl;
+                        break;
+                    case 5:
+                        Info<< "    [Debug] alpha_A_5 statistics:" << nl
+                            << "        min: " << min(alpha_A_5_).value() << nl
+                            << "        max: " << max(alpha_A_5_).value() << nl
+                            << "        mean: " << average(alpha_A_5_).value() << endl;
+                        break;
+                    case 6:
+                        Info<< "    [Debug] alpha_A_6 statistics:" << nl
+                            << "        min: " << min(alpha_A_6_).value() << nl
+                            << "        max: " << max(alpha_A_6_).value() << nl
+                            << "        mean: " << average(alpha_A_6_).value() << endl;
+                        break;
+                    case 7:
+                        Info<< "    [Debug] alpha_A_7 statistics:" << nl
+                            << "        min: " << min(alpha_A_7_).value() << nl
+                            << "        max: " << max(alpha_A_7_).value() << nl
+                            << "        mean: " << average(alpha_A_7_).value() << endl;
+                        break;
+                    case 8:
+                        Info<< "    [Debug] alpha_A_8 statistics:" << nl
+                            << "        min: " << min(alpha_A_8_).value() << nl
+                            << "        max: " << max(alpha_A_8_).value() << nl
+                            << "        mean: " << average(alpha_A_8_).value() << endl;
+                        break;
+                    case 9:
+                        Info<< "    [Debug] alpha_A_9 statistics:" << nl
+                            << "        min: " << min(alpha_A_9_).value() << nl
+                            << "        max: " << max(alpha_A_9_).value() << nl
+                            << "        mean: " << average(alpha_A_9_).value() << endl;
+                        break;
+                    case 10:
+                        Info<< "    [Debug] alpha_A_10 statistics:" << nl
+                            << "        min: " << min(alpha_A_10_).value() << nl
+                            << "        max: " << max(alpha_A_10_).value() << nl
+                            << "        mean: " << average(alpha_A_10_).value() << endl;
+                        break;
+                }
+            }
         }
     }
     // Update Reynolds stress tensor
