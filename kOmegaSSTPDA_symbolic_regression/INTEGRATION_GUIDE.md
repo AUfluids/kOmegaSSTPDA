@@ -92,7 +92,7 @@ To enable symbolic regression in your OpenFOAM case, you need to modify **three 
 - ✅ **No code recompilation needed** - Expressions are evaluated at runtime
 - ✅ **Automatic tensor detection** - Any tensor (Tij2-Tij10) with an expression in `anisotropyExpressions.dict` is automatically used
 - ✅ **Fallback mechanism** - If expressions are missing or invalid, the model falls back to hardcoded coefficients
-- ✅ **Expression format** - Use `I1`, `I2`, etc. directly in expressions (normalization is handled automatically)
+- ✅ **Expression format** - Use `I1`, `I2`, etc. directly in expressions (normalisation is handled automatically)
 
 ### Reference Files
 
@@ -208,8 +208,8 @@ python kOmegaSSTPDA_symbolic_regression/pysr_to_openfoam.py \
 ```
 
 This generates `constant/separationExpression.dict` with:
-- Expression string with normalized invariants
-- Normalization constants (mean/std values)
+- Expression string with normalised invariants
+- Normalisation constants (mean/std values)
 
 #### 2.3: Convert Anisotropy Expressions
 
@@ -397,10 +397,10 @@ FoamFile
 }
 
 // PySR-generated expression with embedded coefficients
-// Use I1, I2, etc. directly - normalization is handled automatically by the turbulence model
+// Use I1, I2, etc. directly - normalisation is handled automatically by the turbulence model
 expression     "-2.070 + 1.119*I1 - 0.215*I2";
 
-// Normalization constants
+// Normalisation constants
 variables
 {
     I1_mean_separation    0.029745472322525918;
@@ -417,16 +417,16 @@ variables
 ```
 
 **Key Points**:
-- ✅ Expression uses **direct invariant names** (`I1`, `I2`, etc.) - normalization is handled automatically by the turbulence model
+- ✅ Expression uses **direct invariant names** (`I1`, `I2`, etc.) - normalisation is handled automatically by the turbulence model
 - ✅ PySR coefficients are embedded directly in the expression string (e.g., `"-2.070 + 1.119*I1"`)
-- ✅ Normalization constants are provided in the `variables` section (used internally by the model)
+- ✅ Normalisation constants are provided in the `variables` section (used internally by the model)
 - ✅ Expression syntax follows C++/ExprTK format (supports `+`, `-`, `*`, `/`, `pow()`, etc.)
 - ✅ The expression is evaluated cell-by-cell at runtime
 
 **For AI Automation**:
 - The `expression` field must contain a valid mathematical expression string
-- Variables `I1`, `I2`, `I3`, `I4`, `I5` are automatically available (normalized internally)
-- The `variables` section must contain all normalization constants (mean and std for each invariant)
+- Variables `I1`, `I2`, `I3`, `I4`, `I5` are automatically available (normalised internally)
+- The `variables` section must contain all normalisation constants (mean and std for each invariant)
 - See `testCases/SD_test/constant/separationExpression.dict` for exact format
 
 ### Anisotropy Expressions Dictionary
@@ -443,7 +443,7 @@ FoamFile
     object      anisotropyExpressions;
 }
 
-// Normalization constants (shared by all tensors)
+// Normalisation constants (shared by all tensors)
 variables
 {
     I1_mean_anisotropy    0.03679851253346419;
@@ -462,7 +462,7 @@ variables
 tensors
 {
     // Tij2 expression
-    // Use I1, I2, etc. directly - normalization is handled automatically by the turbulence model
+    // Use I1, I2, etc. directly - normalisation is handled automatically by the turbulence model
     Tij2
     {
         expression     "-1.584 - 0.685*I1 - 0.178*I2";
@@ -481,19 +481,19 @@ tensors
 **Key Points**:
 - ✅ All tensor expressions are in **one file** (consolidated format)
 - ✅ Each tensor (Tij2, Tij3, ..., Tij10) has its own section with an `expression` string
-- ✅ Normalization constants are **shared** across all tensors (defined once in `variables` section)
+- ✅ Normalisation constants are **shared** across all tensors (defined once in `variables` section)
 - ✅ **Automatic detection**: Any tensor with an expression is automatically used (no code changes needed)
-- ✅ Expressions use **direct invariant names** (`I1`, `I2`, etc.) - normalization handled automatically
+- ✅ Expressions use **direct invariant names** (`I1`, `I2`, etc.) - normalisation handled automatically
 - ✅ Only tensors with non-empty expressions are evaluated (commented out or missing tensors are ignored)
 
 **For AI Automation**:
 - To add a new tensor expression, simply add a new section (e.g., `Tij4 { expression "your_expression"; }`)
 - The model automatically detects and evaluates expressions for **all tensors (Tij2-Tij10)** if present
 - Each tensor expression is independent - you can have expressions for Tij2 and Tij5 only, for example
-- The `variables` section must contain normalization constants for all invariants (I1-I5)
+- The `variables` section must contain normalisation constants for all invariants (I1-I5)
 - See `testCases/SD_test/constant/anisotropyExpressions.dict` for exact format and structure
-- **Expression syntax**: Use `I1`, `I2`, `I3`, `I4`, `I5` directly (NOT normalized form like `(I1 - mean)/std`)
-- The turbulence model handles normalization internally before expression evaluation
+- **Expression syntax**: Use `I1`, `I2`, `I3`, `I4`, `I5` directly (NOT normalised form like `(I1 - mean)/std`)
+- The turbulence model handles normalisation internally before expression evaluation
 
 ## Running Multiple PySR Cases (Batch Processing)
 
@@ -1032,7 +1032,7 @@ done
 ### 📋 Usage Notes
 
 - **ExprTK Required**: For expression evaluation, ExprTK must be installed and compiled with the library
-- **Expression Format**: Expressions use C++/ExprTK syntax with normalized invariants
+- **Expression Format**: Expressions use C++/ExprTK syntax with normalised invariants
 - **Debug Mode**: Enable `debugSymbolicRegression true` to monitor expression evaluation
 
 ## Troubleshooting
@@ -1096,11 +1096,11 @@ To enable symbolic regression in an OpenFOAM case, an AI must:
 
 1. **Create/Modify `constant/separationExpression.dict`**:
    - Add `expression` field with PySR-generated expression (use `I1`, `I2`, etc. directly)
-   - Add `variables` section with normalization constants (mean/std for I1-I5)
+   - Add `variables` section with normalisation constants (mean/std for I1-I5)
    - Reference format: `testCases/SD_test/constant/separationExpression.dict`
 
 2. **Create/Modify `constant/anisotropyExpressions.dict`**:
-   - Add `variables` section with shared normalization constants (mean/std for I1-I5)
+   - Add `variables` section with shared normalisation constants (mean/std for I1-I5)
    - Add `tensors` section with tensor expressions (Tij2, Tij3, ..., Tij10)
    - Each tensor section contains an `expression` field
    - Reference format: `testCases/SD_test/constant/anisotropyExpressions.dict`
@@ -1124,11 +1124,11 @@ To enable symbolic regression in an OpenFOAM case, an AI must:
 
 ### Expression Format Rules
 
-1. **Variable Names**: Use `I1`, `I2`, `I3`, `I4`, `I5` directly (NOT normalized form like `(I1 - mean)/std`)
+1. **Variable Names**: Use `I1`, `I2`, `I3`, `I4`, `I5` directly (NOT normalised form like `(I1 - mean)/std`)
 2. **Syntax**: C++/ExprTK compatible (supports `+`, `-`, `*`, `/`, `pow(base, exp)`, etc.)
 3. **Power Operators**: Use `pow(I1, 2)` instead of `I1**2` or `I1^2` (the model handles conversion automatically)
 4. **Coefficients**: PySR numeric coefficients are embedded directly (e.g., `"-1.584 - 0.685*I1"`)
-5. **Normalization**: Handled automatically by the model (no need to write `(I1 - mean)/std` in expressions)
+5. **Normalisation**: Handled automatically by the model (no need to write `(I1 - mean)/std` in expressions)
 
 ### File Location Requirements
 
@@ -1152,8 +1152,8 @@ Before running a simulation, verify:
 - [ ] `constant/turbulenceProperties` contains `separationCorrection true;` (if using separation)
 - [ ] `constant/turbulenceProperties` contains `anisotropyCorrection true;` (if using anisotropy)
 - [ ] Expression dictionaries contain valid `expression` fields
-- [ ] Expression dictionaries contain `variables` sections with normalization constants
-- [ ] Expression syntax uses `I1`, `I2`, etc. (NOT normalized form)
+- [ ] Expression dictionaries contain `variables` sections with normalisation constants
+- [ ] Expression syntax uses `I1`, `I2`, etc. (NOT normalised form)
 
 ### Example: Adding a New Tensor Expression
 
@@ -1182,8 +1182,8 @@ To add a symbolic regression expression for Tij4:
 
 ### Common Mistakes to Avoid
 
-1. ❌ **Using normalized form in expressions**: `(I1 - I1_mean_anisotropy)/I1_std_anisotropy`  
-   ✅ **Correct**: Use `I1` directly - normalization is automatic
+1. ❌ **Using normalised form in expressions**: `(I1 - I1_mean_anisotropy)/I1_std_anisotropy`  
+   ✅ **Correct**: Use `I1` directly - normalisation is automatic
 
 2. ❌ **Missing `separationCorrection true`**: Expression won't be evaluated  
    ✅ **Correct**: Set `separationCorrection true;` in `turbulenceProperties`
@@ -1194,7 +1194,7 @@ To add a symbolic regression expression for Tij4:
 4. ❌ **Using `**` or `^` for powers**: May cause parsing errors  
    ✅ **Correct**: Use `pow(I1, 2)` or let the model convert automatically
 
-5. ❌ **Missing normalization constants**: Expression evaluation may fail  
+5. ❌ **Missing normalisation constants**: Expression evaluation may fail  
    ✅ **Correct**: Include all `I1_mean_*`, `I1_std_*`, etc. in `variables` section
 
 ## Example Reference Files

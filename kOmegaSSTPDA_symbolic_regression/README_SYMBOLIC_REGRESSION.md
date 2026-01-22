@@ -208,7 +208,7 @@ The `expressionParser` class provides:
 ### Variable Mapping
 
 PySR variables are mapped to OpenFOAM fields:
-- `I1` → `(I1 - I1_mean)/I1_std` (normalized)
+- `I1` → `(I1 - I1_mean)/I1_std` (normalised)
 - `I2` → `(I2 - I2_mean)/I2_std`
 - etc.
 

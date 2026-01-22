@@ -85,15 +85,12 @@ protected:
 
         //- Normalisation control
         bool normalise_;
-        word normalisationFieldName_;
         
-        //- Field names for velocity and pressure (velocity used for gradients)
+        //- Use mean fields (UMean, kMean, omegaMean) or instantaneous fields (U, k, omega)
+        bool useMean_;
+        
+        //- Field name for velocity (used for gradients)
         word UName_;
-        
-        //- Optional: use k and epsilon if available
-        word kName_;
-        word epsilonName_;
-        bool useKEpsilon_;
 
 
 public:

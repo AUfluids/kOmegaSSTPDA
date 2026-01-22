@@ -466,7 +466,7 @@ void expressionParser::read(const dictionary& dict)
         expressionStr_ = expressionStr_.substr(1);
     }
     
-    // Read normalization constants from variables sub-dictionary
+    // Read normalisation constants from variables sub-dictionary
     if (dict.found("variables"))
     {
         const dictionary& varsDict = dict.subDict("variables");

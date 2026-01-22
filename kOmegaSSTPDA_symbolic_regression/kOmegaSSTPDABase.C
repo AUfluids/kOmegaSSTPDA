@@ -2408,7 +2408,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
         if (useSymbolicRegression_ && separationExpressionParser_ && separationExpressionParser_->isValid())
         {
             // Evaluate symbolic regression expression
-            // Create normalized invariant fields for expression evaluation
+            // Create normalised invariant fields for expression evaluation
             volScalarField I1_norm((I1_ - I1_mean_separation)/I1_std_separation);
             volScalarField I2_norm((I2_ - I2_mean_separation)/I2_std_separation);
             volScalarField I3_norm((I3_ - I3_mean_separation)/I3_std_separation);
@@ -2527,7 +2527,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // anisotropyFactor = sum of all active alpha_A_i*Tij_i
     if (anisotropyCorrection_)
     {
-        // Create normalized invariant fields once (used by all tensors)
+        // Create normalised invariant fields once (used by all tensors)
         volScalarField I1_norm((I1_ - I1_mean_anisotropy)/I1_std_anisotropy);
         volScalarField I2_norm((I2_ - I2_mean_anisotropy)/I2_std_anisotropy);
         volScalarField I3_norm((I3_ - I3_mean_anisotropy)/I3_std_anisotropy);
@@ -2945,7 +2945,7 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     // Calculate total and updated Reynolds stress tensor
     Rij_ = ((2.0/3.0)*I)*k_ - 2.0*nut*Sij_ + 2*k_*bijDelta_;
     
-    // Calculate normalized Reynolds stress anisotropy tensor
+    // Calculate normalised Reynolds stress anisotropy tensor
     // bij = (Rij - (2/3)*k*delta_ij) / (2*k)  (dimensionless)
     const volScalarField kPlusMax(k_ + this->kMin_);
     bij_ = (Rij_ - (2.0/3.0)*k_*I) / (2.0*kPlusMax);
@@ -3033,6 +3033,98 @@ void kOmegaSSTPDABase<BasicEddyViscosityModel>::correct()
     bound(k_, this->kMin_);
 
     correctNut(S2);
+    
+    // Write PDA fields (invariants and tensors) if enabled
+    // Only write at write times to prevent creating directories every iteration
+    // Use the same logic as calculation to determine which fields to write
+    if (writePDAFields_ && this->runTime_.writeTime())
+    {
+        // Write invariants if they're calculated (used for separation or anisotropy correction)
+        // Invariants are calculated if: useI1_ || separationCorrection_ (same for I2-I5)
+        if (useI1_ || separationCorrection_)
+        {
+            I1_.write();
+        }
+        if (useI2_ || separationCorrection_)
+        {
+            I2_.write();
+        }
+        if (useI3_ || separationCorrection_)
+        {
+            I3_.write();
+        }
+        if (useI4_ || separationCorrection_)
+        {
+            I4_.write();
+        }
+        if (useI5_ || separationCorrection_)
+        {
+            I5_.write();
+        }
+        
+        // Write strain and rotation tensors (always calculated)
+        Sij_.write();
+        Omegaij_.write();
+        
+        // Write base tensors using the exact same logic as calculation
+        // Loop through all tensors (2-10) and check if they should be written
+        for (label i = 2; i <= 10; ++i)
+        {
+            bool shouldWrite = false;
+            
+            // Check if coefficients are non-zero (same as calculation)
+            switch(i)
+            {
+                case 2: shouldWrite = useTij2_; break;
+                case 3: shouldWrite = useTij3_; break;
+                case 4: shouldWrite = useTij4_; break;
+                case 5: shouldWrite = useTij5_; break;
+                case 6: shouldWrite = useTij6_; break;
+                case 7: shouldWrite = useTij7_; break;
+                case 8: shouldWrite = useTij8_; break;
+                case 9: shouldWrite = useTij9_; break;
+                case 10: shouldWrite = useTij10_; break;
+            }
+            
+            // Also check if symbolic regression is enabled for this tensor (same as calculation)
+            if (!shouldWrite && useSymbolicRegression_ && anisotropyCorrection_)
+            {
+                word key = name(i);
+                if (anisotropyExpressionParsers_.found(key) && 
+                    anisotropyExpressionParsers_[key] && 
+                    anisotropyExpressionParsers_[key]->isValid())
+                {
+                    shouldWrite = true;
+                }
+            }
+            
+            // Write tensor if it should be written (same condition as calculation)
+            if (shouldWrite)
+            {
+                switch(i)
+                {
+                    case 2: Tij2_.write(); break;
+                    case 3: Tij3_.write(); break;
+                    case 4: Tij4_.write(); break;
+                    case 5: Tij5_.write(); break;
+                    case 6: Tij6_.write(); break;
+                    case 7: Tij7_.write(); break;
+                    case 8: Tij8_.write(); break;
+                    case 9: Tij9_.write(); break;
+                    case 10: Tij10_.write(); break;
+                }
+            }
+        }
+        
+        // Write derived fields (always calculated if anisotropy correction is on)
+        if (anisotropyCorrection_)
+        {
+            anisotropyFactor_.write();
+            bijDelta_.write();
+            Rij_.write();
+            bij_.write();
+        }
+    }
 }
 
 

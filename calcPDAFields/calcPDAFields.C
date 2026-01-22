@@ -61,11 +61,8 @@ calcPDAFields::calcPDAFields
     fvMeshFunctionObject(name, runTime, dict),
     epsilon_(1e-10),
     normalise_(true),
-    normalisationFieldName_("omega"),
-    UName_("U"),
-    kName_("k"),
-    epsilonName_("epsilon"),
-    useKEpsilon_(false)
+    useMean_(false),
+    UName_("U")
 {
     read(dict);
 }
@@ -77,11 +74,8 @@ bool calcPDAFields::read(const dictionary& dict)
 
     dict.readIfPresent("epsilon", epsilon_);
     dict.readIfPresent("normalise", normalise_);
-    dict.readIfPresent("normalisationField", normalisationFieldName_);
+    dict.readIfPresent("useMean", useMean_);
     dict.readIfPresent("U", UName_);
-    dict.readIfPresent("k", kName_);
-    dict.readIfPresent("epsilon", epsilonName_);
-    dict.readIfPresent("useKEpsilon", useKEpsilon_);
 
     return true;
 }
@@ -95,7 +89,12 @@ bool calcPDAFields::execute()
 
 bool calcPDAFields::write()
 {
-    const volVectorField& U = mesh_.lookupObject<volVectorField>(UName_);
+    // Determine field names based on useMean flag
+    word UFieldName = useMean_ ? "UMean" : (UName_.empty() ? "U" : UName_);
+    word kFieldName = useMean_ ? "kMean" : "k";
+    word omegaFieldName = useMean_ ? "omegaMean" : "omega";
+    
+    const volVectorField& U = mesh_.lookupObject<volVectorField>(UFieldName);
 
     // Calculate strain and rotation tensors
     volTensorField gradU(fvc::grad(U));
@@ -103,7 +102,9 @@ bool calcPDAFields::write()
     volTensorField Omegaij(-0.5*(gradU - gradU.T()));
     volScalarField S(sqrt(2*magSqr(symm(gradU))));
 
-    // Calculate time scale for normalisation
+    // Calculate time scale (always with time dimensions, like kOmegaSSTPDABase)
+    // tauScale always has time dimensions [0 0 1 0 0 0 0]
+    // The normalise flag controls whether invariants/tensors are normalized by it
     volScalarField tauScale
     (
         IOobject
@@ -115,64 +116,40 @@ bool calcPDAFields::write()
             IOobject::NO_WRITE
         ),
         mesh_,
-        dimensionedScalar("one", dimless, 1.0)
+        dimensionedScalar("one", dimensionSet(0, 0, 1, 0, 0, 0, 0), 1.0)  // Always time dimensions
     );
     
-    if (normalise_)
+    // Try to find omega field (instantaneous or mean based on useMean flag)
+    const volScalarField* omegaField = nullptr;
+    
+    if (mesh_.foundObject<volScalarField>(omegaFieldName))
     {
-        // Try to find the normalisation field
-        if (mesh_.foundObject<volScalarField>(normalisationFieldName_))
-        {
-            const volScalarField& normField = 
-                mesh_.lookupObject<volScalarField>(normalisationFieldName_);
-            tauScale = 1.0/(normField + epsilon_);
-        }
-        else if (normalisationFieldName_ == "omega")
-        {
-            // Default: use strain rate if omega not available
-            tauScale = 1.0/(S + epsilon_);
-        }
-        else if (normalisationFieldName_ == "epsilon")
-        {
-            // Use epsilon if available
-            if (mesh_.foundObject<volScalarField>("epsilon"))
-            {
-                const volScalarField& epsilon = 
-                    mesh_.lookupObject<volScalarField>("epsilon");
-                tauScale = 1.0/(epsilon + epsilon_);
-            }
-            else
-            {
-                tauScale = 1.0/(S + epsilon_);
-            }
-        }
-        else if (normalisationFieldName_ == "S" || normalisationFieldName_ == "strain")
-        {
-            // Use strain rate magnitude
-            tauScale = 1.0/(S + epsilon_);
-        }
-        else if (useKEpsilon_ && mesh_.foundObject<volScalarField>(kName_))
-        {
-            // Use k/epsilon if available
-            const volScalarField& k = mesh_.lookupObject<volScalarField>(kName_);
-            if (mesh_.foundObject<volScalarField>(epsilonName_))
-            {
-                const volScalarField& epsilon = 
-                    mesh_.lookupObject<volScalarField>(epsilonName_);
-                tauScale = k/(epsilon + epsilon_);
-            }
-            else
-            {
-                tauScale = 1.0/(S + epsilon_);
-            }
-        }
-        else
-        {
-            // Default: use strain rate
-            tauScale = 1.0/(S + epsilon_);
-        }
+        omegaField = &mesh_.lookupObject<volScalarField>(omegaFieldName);
     }
-    // If normalisation is disabled, tauScale remains unity
+    
+    if (omegaField)
+    {
+        // Use the same tauScale calculation as kOmegaSSTPDABase
+        // tauScale = 1.0 / max(S/a1 + omegaMin, omega + omegaMin)
+        // Create directly from expression to ensure dimensions are correctly inferred
+        const dimensionedScalar a1("a1", dimless, 0.31);
+        const dimensionedScalar omegaMin
+        (
+            "omegaMin",
+            omegaField->dimensions(),
+            1.0e-15
+        );
+        // Create tauScale directly from expression (like kOmegaSSTPDABase)
+        // This ensures dimensions are correctly inferred: 1.0 (dimless) / [0 0 -1 0 0 0 0] = [0 0 1 0 0 0 0]
+        tauScale = 1./max(S/a1 + omegaMin, (*omegaField) + omegaMin);
+    }
+    else if (normalise_)
+    {
+        WarningInFunction
+            << "Omega field '" << omegaFieldName << "' not found. "
+            << "Cannot calculate tauScale for normalisation. "
+            << "tauScale will remain unity (1.0 s)." << endl;
+    }
 
     // Calculate time scale powers
     volScalarField tauScale2(tauScale*tauScale);
@@ -180,11 +157,35 @@ bool calcPDAFields::write()
     volScalarField tauScale4(tauScale2*tauScale2);
     volScalarField tauScale5(tauScale2*tauScale3);
 
-    // Dimensionless strain/rotation tensors (or dimensional if not normalised)
-    volSymmTensorField Sdim(tauScale*Sij);
-    volTensorField Odim(tauScale*Omegaij);
+    // Dimensionless strain/rotation tensors (only if normalise is true)
+    // Otherwise use dimensional Sij and Omegaij directly
+    volSymmTensorField Sdim
+    (
+        IOobject
+        (
+            "Sdim",
+            time_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        normalise_ ? (tauScale*Sij)() : Sij
+    );
+    volTensorField Odim
+    (
+        IOobject
+        (
+            "Odim",
+            time_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        normalise_ ? (tauScale*Omegaij)() : Omegaij
+    );
 
     // Calculate invariants
+    // Normalise by tauScale powers only if normalise flag is true
     volScalarField I1
     (
         IOobject
@@ -193,10 +194,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        tauScale2 * tr(Sij & Sij)
+        normalise_ ? (tauScale2 * tr(Sij & Sij)) : tr(Sij & Sij)
     );
+    I1.checkOut();  // Remove from object registry to prevent automatic writing
 
     volScalarField I2
     (
@@ -206,10 +208,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        tauScale2 * tr(Omegaij & Omegaij)
+        normalise_ ? (tauScale2 * tr(Omegaij & Omegaij)) : tr(Omegaij & Omegaij)
     );
+    I2.checkOut();  // Remove from object registry to prevent automatic writing
 
     volScalarField I3
     (
@@ -219,10 +222,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        tauScale3 * tr(Sij & Sij & Sij)
+        normalise_ ? (tauScale3 * tr(Sij & Sij & Sij)) : tr(Sij & Sij & Sij)
     );
+    I3.checkOut();
 
     volScalarField I4
     (
@@ -232,10 +236,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        tauScale3 * tr(Omegaij & Omegaij & Sij)
+        normalise_ ? (tauScale3 * tr(Omegaij & Omegaij & Sij)) : tr(Omegaij & Omegaij & Sij)
     );
+    I4.checkOut();
 
     volScalarField I5
     (
@@ -245,10 +250,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        tauScale4 * tr(Omegaij & Omegaij & Sij & Sij)
+        normalise_ ? (tauScale4 * tr(Omegaij & Omegaij & Sij & Sij)) : tr(Omegaij & Omegaij & Sij & Sij)
     );
+    I5.checkOut();
 
     // Calculate base tensors
     volSymmTensorField Tij2
@@ -259,10 +265,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Sdim & Odim) - (Odim & Sdim))
     );
+    Tij2.checkOut();
 
     volSymmTensorField Tij3
     (
@@ -272,10 +279,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Sdim & Sdim) - (scalar(1.0)/3.0)*tr(Sdim & Sdim)*tensor::I)
     );
+    Tij3.checkOut();
 
     volSymmTensorField Tij4
     (
@@ -285,10 +293,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Odim) - (scalar(1.0)/3.0)*tr(Odim & Odim)*tensor::I)
     );
+    Tij4.checkOut();
 
     volSymmTensorField Tij5
     (
@@ -298,10 +307,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Sdim & Sdim) - (Sdim & Sdim & Odim))
     );
+    Tij5.checkOut();
 
     volSymmTensorField Tij6
     (
@@ -311,11 +321,12 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Odim & Sdim) + (Sdim & Odim & Odim) 
              - (scalar(2.0)/3.0)*tr(Sdim & Odim & Odim)*tensor::I)
     );
+    Tij6.checkOut();
 
     volSymmTensorField Tij7
     (
@@ -325,10 +336,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Sdim & Odim & Odim) - (Odim & Odim & Sdim & Odim))
     );
+    Tij7.checkOut();
 
     volSymmTensorField Tij8
     (
@@ -338,10 +350,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Sdim & Sdim & Sdim) - (Sdim & Sdim & Odim & Sdim))
     );
+    Tij8.checkOut();
 
     volSymmTensorField Tij9
     (
@@ -351,11 +364,12 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Odim & Sdim & Sdim) + (Sdim & Sdim & Odim & Odim)
              - (scalar(2.0)/3.0)*tr(Sdim & Sdim & Odim & Odim)*tensor::I)
     );
+    Tij9.checkOut();
 
     volSymmTensorField Tij10
     (
@@ -365,11 +379,12 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         symm((Odim & Sdim & Sdim & Sdim & Odim) 
              - (Odim & Odim & Sdim & Sdim & Odim))
     );
+    Tij10.checkOut();
 
     // Output strain-rate and rotation tensors
     volSymmTensorField SijField
@@ -380,10 +395,11 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         Sij
     );
+    SijField.checkOut();
 
     volTensorField OmegaijField
     (
@@ -393,16 +409,17 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         Omegaij
     );
+    OmegaijField.checkOut();
 
-    // Retrieve turbulent kinetic energy if available
+    // Retrieve turbulent kinetic energy if available (k or kMean based on useMean flag)
     const volScalarField* kPtr = nullptr;
-    if (mesh_.foundObject<volScalarField>(kName_))
+    if (mesh_.foundObject<volScalarField>(kFieldName))
     {
-        kPtr = &mesh_.lookupObject<volScalarField>(kName_);
+        kPtr = &mesh_.lookupObject<volScalarField>(kFieldName);
     }
 
     // Retrieve turbulent viscosity if available (fallback to zero)
@@ -420,7 +437,7 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedSymmTensor("zero", dimensionSet(0, 2, -2, 0, 0, 0, 0), symmTensor::zero)
@@ -436,8 +453,9 @@ bool calcPDAFields::write()
         const volScalarField& k = *kPtr;
         Rij = ((2.0/3.0)*k)*symmTensor::I;
     }
+    Rij.checkOut();
 
-    // Calculate normalized Reynolds stress anisotropy tensor bij
+    // Calculate normalised Reynolds stress anisotropy tensor bij
     // bij = (Rij - (2/3)*k*delta_ij) / (2*k)  (dimensionless)
     volSymmTensorField bij
     (
@@ -447,7 +465,7 @@ bool calcPDAFields::write()
             time_.timeName(),
             mesh_,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh_,
         dimensionedSymmTensor("zero", dimless, symmTensor::zero)
@@ -460,13 +478,20 @@ bool calcPDAFields::write()
         const volScalarField kPlusMax(k + kEps);
         bij = (Rij - ((2.0/3.0)*k)*symmTensor::I) / (2.0*kPlusMax);
     }
+    bij.checkOut();
 
     // Write fields
+    Info<< "    functionObjects::" << name() << " " << name() 
+        << " writing fields:" << endl;
+    
+    Info<< "        Invariants: I1, I2, I3, I4, I5" << endl;
     I1.write();
     I2.write();
     I3.write();
     I4.write();
     I5.write();
+    
+    Info<< "        Base tensors: Tij2, Tij3, Tij4, Tij5, Tij6, Tij7, Tij8, Tij9, Tij10" << endl;
     Tij2.write();
     Tij3.write();
     Tij4.write();
@@ -476,10 +501,17 @@ bool calcPDAFields::write()
     Tij8.write();
     Tij9.write();
     Tij10.write();
+    
+    Info<< "        Strain/rotation tensors: Sij, Omegaij" << endl;
     SijField.write();
     OmegaijField.write();
+    
+    Info<< "        Reynolds stress: Rij, bij" << endl;
     Rij.write();
     bij.write();
+    
+    Info<< "    functionObjects::" << name() << " " << name() 
+        << " wrote " << 18 << " fields" << endl;
 
     return true;
 }

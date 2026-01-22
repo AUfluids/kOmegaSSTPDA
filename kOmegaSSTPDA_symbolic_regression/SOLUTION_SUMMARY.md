@@ -16,7 +16,7 @@ The solution uses **runtime expression evaluation** with the following component
 ## Key Benefits
 
 ✅ **No Recompilation**: Change expressions by editing dictionary files  
-✅ **Fast Evaluation**: ExprTK provides optimized expression parsing  
+✅ **Fast Evaluation**: ExprTK provides optimised expression parsing  
 ✅ **Flexible**: Support complex mathematical expressions  
 ✅ **Easy Iteration**: Train → Convert → Deploy workflow  
 

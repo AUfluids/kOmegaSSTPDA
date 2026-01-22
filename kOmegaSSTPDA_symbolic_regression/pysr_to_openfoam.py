@@ -34,7 +34,7 @@ def pysr_equation_to_openfoam(equation_str, variable_map=None):
         PySR equation string (e.g., "-2.070 + 1.119*x1 - 0.215*x2" or "C0 + C1*I1")
     variable_map : dict, optional
         Mapping from PySR variable names to OpenFOAM field names
-        Common mappings: {'x1': 'I1', 'x2': 'I2', ...} or {'I1': 'normalized_I1', ...}
+        Common mappings: {'x1': 'I1', 'x2': 'I2', ...} or {'I1': 'normalised_I1', ...}
         
     Returns:
     --------
@@ -102,8 +102,8 @@ def create_separation_expression_dict(pysr_model, output_file):
         raise ValueError("Could not find equation in PySR model data. Expected 'equation' key or 'best' -> 'equation'")
     
     # Variable mapping: PySR variables to OpenFOAM invariant names
-    # Note: Normalization is handled automatically by the turbulence model
-    # The model normalizes invariants before registering them with the expression parser
+    # Note: Normalisation is handled automatically by the turbulence model
+    # The model normalises invariants before registering them with the expression parser
     var_map = {
         # Common PySR variable names (x1, x2, ...)
         'x1': 'I1',
@@ -144,13 +144,13 @@ FoamFile
 
 expression     "{of_equation}";
 
-// Variable definitions (normalization constants)
-// These are used by the turbulence model to normalize invariants: (I - mean) / std
-// The normalization is applied automatically before expression evaluation
+// Variable definitions (normalisation constants)
+// These are used by the turbulence model to normalise invariants: (I - mean) / std
+// The normalisation is applied automatically before expression evaluation
 // PySR expressions typically have coefficients embedded, so no separate coefficient definitions needed
 variables
 {{
-    // Separation correction normalization constants
+    // Separation correction normalisation constants
     I1_mean_separation    0.029745472322525918;
     I1_std_separation     0.01781867158784395;
     I2_mean_separation    -0.024867181279038093;
@@ -187,8 +187,8 @@ def create_consolidated_anisotropy_dict(pysr_models_dict, output_file):
         Path to output OpenFOAM dictionary file
     """
     # Variable mapping: PySR variables to OpenFOAM invariant names
-    # Note: Normalization is handled automatically by the turbulence model
-    # The model normalizes invariants before registering them with the expression parser
+    # Note: Normalisation is handled automatically by the turbulence model
+    # The model normalises invariants before registering them with the expression parser
     var_map = {
         # Common PySR variable names (x1, x2, ...)
         'x1': 'I1',
@@ -272,14 +272,14 @@ FoamFile
 // Expressions replace the hardcoded calculations:
 //   alpha_A_i = A0_i + A1_i*I1 + A2_i*I2 + A3_i*I3 + A4_i*I4 + A5_i*I5
 //
-// Variables I1-I5 in expressions are automatically normalized by the turbulence model
+// Variables I1-I5 in expressions are automatically normalised by the turbulence model
 // using mean and std values below before expression evaluation
-// Expression syntax follows C++/ExprTK format - use I1, I2, etc. directly (not normalized form)
+// Expression syntax follows C++/ExprTK format - use I1, I2, etc. directly (not normalised form)
 
-// Variable definitions (normalization constants) - shared by all tensors
+// Variable definitions (normalisation constants) - shared by all tensors
 variables
 {{
-    // Anisotropy correction normalization constants
+    // Anisotropy correction normalisation constants
     I1_mean_anisotropy    0.03679851253346419;
     I1_std_anisotropy     0.016109597689079515;
     I2_mean_anisotropy    -0.03681156960681101;
@@ -345,8 +345,8 @@ def create_anisotropy_expression_dict(pysr_models, output_file, tensor_index):
         equation = str(model_data)
     
     # Variable mapping: PySR variables to OpenFOAM invariant names
-    # Note: Normalization is handled automatically by the turbulence model
-    # The model normalizes invariants before registering them with the expression parser
+    # Note: Normalisation is handled automatically by the turbulence model
+    # The model normalises invariants before registering them with the expression parser
     var_map = {
         'x1': 'I1',
         'x2': 'I2',
