@@ -43,14 +43,13 @@ The k-omega-SST-PDA model is a progressive data-augmented turbulence model that 
 ## Installation
 1. Clone the repository and check out the `v2.0` branch:
      ```
-     git clone https://github.com/AUfluids/KOSSTPDA.git
-     cd KOSSTPDA
-     git checkout v2.0
+     git clone https://github.com/AUfluids/kOmegaSSTPDA.git
      ```
 
 2. Make the installation scripts executable:
      ```
-     chmod a+x Allwmake Allwclean
+     cd kOmegaSSTPDA
+     chmod a+x Allwmake
      ```
 
 3. Load your OpenFOAM environment, then clean and compile:
@@ -167,10 +166,13 @@ Please cite this library using the following publications:
 Rincón et al. (2025)
 ```
 @article{rincon2025generalisable,
-  title={A generalisable data-augmented turbulence model with progressive and interpretable corrections},
-  author={Rinc{\'o}n, Mario J and Reclari, Martino and Yang, Xiang IA and Abkar, Mahdi},
-  journal={arXiv preprint arXiv:2503.18568},
-  year={2025}
+  title={A generalisable data-augmented turbulence model with progressive and interpretable corrections for incompressible wall-bounded flows},
+  author={Rinc{\'o}n, Mario Javier and Reclari, Martino and Yang, Xiang IA and Abkar, Mahdi},
+  journal={International Journal of Heat and Fluid Flow},
+  volume={116},
+  pages={109970},
+  year={2025},
+  publisher={Elsevier}
 }
 ```
 
