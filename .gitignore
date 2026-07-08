@@ -1,0 +1,16 @@
+# OpenFOAM build artefacts
+**/Make/linux*/
+**/Make/darwin*/
+**/Make/*Opt/
+**/Make/*Debug/
+**/lnInclude/
+*.dep
+*.o
+*.so
+*.a
+foamVersionThisIsCompiledFor
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/

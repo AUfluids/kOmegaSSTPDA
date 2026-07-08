@@ -37,25 +37,28 @@ The k-omega-SST-PDA model is a progressive data-augmented turbulence model that 
 - Compatible with incompressible and compressible flows
 
 ## Requirements
-- OpenFOAM-v2412 or previous ESI versions
+- OpenFOAM-v2406 or newer ESI versions (tested up to v2512)
 - C++11 or later
 
 ## Installation
-1. Clone the repository:
+1. Clone the repository and check out the `v2.0` branch:
      ```
      git clone https://github.com/AUfluids/kOmegaSSTPDA.git
      ```
 
-2. Make the installation script executable:
+2. Make the installation scripts executable:
      ```
      cd kOmegaSSTPDA
      chmod a+x Allwmake
      ```
 
-3. Compile the model:
+3. Load your OpenFOAM environment, then clean and compile:
      ```
+     ./Allwclean
      ./Allwmake
      ```
+
+> **Note**: Always run `./Allwclean` before `./Allwmake`, especially after cloning or when switching OpenFOAM versions. Stale build artefacts can otherwise reference relocated headers (for example `regExp.H` in OpenFOAM v2512) and cause compilation to fail.
 
 ## Usage
 1. Add the required library to `controlDict`:
@@ -144,7 +147,7 @@ Results for duct flow (AR = 1, Reb = 3500):
 ![Reynolds Stress Profiles](https://github.com/AUfluids/KOSSTPDA/blob/main/testCases/SD_ReB3500_AR1/profiles_comparison_Rij_SD_ReB3500_AR1.png)
 
 ## Target platform
-The code is known to work with OpenFOAM-v2406 and previous ESI versions.
+The `v2.0` branch is known to work with OpenFOAM-v2406 through v2512.
 
 ## Authors
 Mario Javier Rincón <mjrp@mpe.au.dk>
